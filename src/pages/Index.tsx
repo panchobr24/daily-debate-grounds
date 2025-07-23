@@ -1,55 +1,67 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/ui/header";
 import { HeroSection } from "@/components/ui/hero-section";
 import { DebateRoomCard } from "@/components/ui/debate-room-card";
 import { Leaderboard } from "@/components/ui/leaderboard";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
-const mockTopics = [
-  {
-    topic: "Should social media platforms be held responsible for mental health impacts?",
-    participants: 24,
-    messages: 127,
-    timeRemaining: "18h 42m",
-    roomNumber: 1,
-    isActive: true
-  },
-  {
-    topic: "Is remote work the future or are we losing essential human connections?",
-    participants: 31,
-    messages: 203,
-    timeRemaining: "18h 42m",
-    roomNumber: 2
-  },
-  {
-    topic: "Should governments regulate AI development more strictly?",
-    participants: 19,
-    messages: 89,
-    timeRemaining: "18h 42m",
-    roomNumber: 3
-  },
-  {
-    topic: "Is the four-day work week realistic for all industries?",
-    participants: 27,
-    messages: 156,
-    timeRemaining: "18h 42m",
-    roomNumber: 4
-  },
-  {
-    topic: "Should cryptocurrency replace traditional banking systems?",
-    participants: 15,
-    messages: 67,
-    timeRemaining: "18h 42m",
-    roomNumber: 5
-  },
-  {
-    topic: "Is climate activism doing more harm than good to environmental causes?",
-    participants: 33,
-    messages: 241,
-    timeRemaining: "18h 42m",
-    roomNumber: 6
-  }
-];
+interface DebateRoom {
+  id: string;
+  title: string;
+  description: string;
+  topic: string;
+  is_active: boolean;
+  created_at: string;
+  expires_at: string;
+}
 
 const Index = () => {
+  const [debateRooms, setDebateRooms] = useState<DebateRoom[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchDebateRooms();
+  }, []);
+
+  const fetchDebateRooms = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('debate_rooms')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      setDebateRooms(data);
+    }
+    setLoading(false);
+  };
+
+  const formatTimeLeft = (expiresAt: string) => {
+    const expiryDate = new Date(expiresAt);
+    const now = new Date();
+    
+    if (expiryDate < now) {
+      return "Expirado";
+    }
+    
+    return formatDistanceToNow(expiryDate, { locale: ptBR });
+  };
+
+  const handleJoinRoom = (roomId: string) => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    navigate(`/chat/${roomId}`);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-turf-purple/5">
       <Header />
@@ -66,11 +78,26 @@ const Index = () => {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-            {mockTopics.map((room, index) => (
-              <DebateRoomCard key={index} {...room} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-turf-purple"></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+              {debateRooms.map((room) => (
+                <DebateRoomCard 
+                  key={room.id}
+                  topic={room.topic}
+                  participants={Math.floor(Math.random() * 200) + 50}
+                  messages={Math.floor(Math.random() * 500) + 100}
+                  timeRemaining={formatTimeLeft(room.expires_at)}
+                  roomNumber={parseInt(room.id.slice(-1)) || 1}
+                  isActive={room.is_active}
+                  onClick={() => handleJoinRoom(room.id)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

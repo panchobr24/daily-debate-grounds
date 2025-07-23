@@ -10,6 +10,7 @@ interface DebateRoomCardProps {
   timeRemaining: string;
   roomNumber: number;
   isActive?: boolean;
+  onClick?: () => void;
 }
 
 export const DebateRoomCard = ({ 
@@ -18,7 +19,8 @@ export const DebateRoomCard = ({
   messages, 
   timeRemaining, 
   roomNumber,
-  isActive = false 
+  isActive = false,
+  onClick 
 }: DebateRoomCardProps) => {
   return (
     <Card className={`group transition-all duration-300 hover:shadow-lg hover:scale-[1.02] ${
@@ -60,6 +62,7 @@ export const DebateRoomCard = ({
         </div>
         
         <Button 
+          onClick={onClick}
           className="w-full bg-gradient-to-r from-turf-purple to-turf-accent hover:opacity-90 transition-opacity"
           size="sm"
         >
