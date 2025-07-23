@@ -52,6 +52,14 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				turf: {
+					purple: 'hsl(var(--turf-purple))',
+					'purple-light': 'hsl(var(--turf-purple-light))',
+					'purple-dark': 'hsl(var(--turf-purple-dark))',
+					accent: 'hsl(var(--turf-accent))',
+					success: 'hsl(var(--turf-success))',
+					warning: 'hsl(var(--turf-warning))'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
