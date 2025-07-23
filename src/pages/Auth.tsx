@@ -71,14 +71,13 @@ export default function Auth() {
       
       if (error) {
         toast({
-          title: "Erro no cadastro",
+          title: "Sign up error",
           description: error.message,
           variant: "destructive",
         });
       } else {
         // Upload avatar if provided
         if (avatarFile) {
-          // We'll need to wait for the user to be created and then update the profile
           setTimeout(async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
@@ -94,14 +93,14 @@ export default function Auth() {
         }
 
         toast({
-          title: "Conta criada com sucesso!",
-          description: "Você já pode fazer login.",
+          title: "Account created successfully!",
+          description: "You can now sign in.",
         });
       }
     } catch (error) {
       toast({
-        title: "Erro inesperado",
-        description: "Tente novamente em alguns instantes.",
+        title: "Unexpected error",
+        description: "Please try again in a few moments.",
         variant: "destructive",
       });
     } finally {
@@ -118,20 +117,20 @@ export default function Auth() {
       
       if (error) {
         toast({
-          title: "Erro no login",
+          title: "Sign in error",
           description: error.message,
           variant: "destructive",
         });
       } else {
         toast({
-          title: "Login realizado com sucesso!",
-          description: "Bem-vindo de volta ao Turf!",
+          title: "Login successful!",
+          description: "Welcome back to Turf!",
         });
       }
     } catch (error) {
       toast({
-        title: "Erro inesperado",
-        description: "Tente novamente em alguns instantes.",
+        title: "Unexpected error",
+        description: "Please try again in a few moments.",
         variant: "destructive",
       });
     } finally {
@@ -145,15 +144,15 @@ export default function Auth() {
       const { error } = await signInWithGoogle();
       if (error) {
         toast({
-          title: "Erro no login com Google",
+          title: "Google sign in error",
           description: error.message,
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: "Erro inesperado",
-        description: "Tente novamente em alguns instantes.",
+        title: "Unexpected error",
+        description: "Please try again in a few moments.",
         variant: "destructive",
       });
     } finally {
@@ -167,14 +166,14 @@ export default function Auth() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-turf-purple">Turf</CardTitle>
           <CardDescription>
-            Entre na conversação que importa
+            Join the conversation that matters
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="signup">Cadastro</TabsTrigger>
+              <TabsTrigger value="login">Sign In</TabsTrigger>
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
             
             <TabsContent value="login" className="space-y-4">
@@ -186,12 +185,12 @@ export default function Auth() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="seu@email.com"
+                    placeholder="your@email.com"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Senha</Label>
+                  <Label htmlFor="password">Password</Label>
                   <Input
                     id="password"
                     type="password"
@@ -202,7 +201,7 @@ export default function Auth() {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Entrando..." : "Entrar"}
+                  {loading ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
               
@@ -211,7 +210,7 @@ export default function Auth() {
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">ou</span>
+                  <span className="bg-card px-2 text-muted-foreground">or</span>
                 </div>
               </div>
 
@@ -222,7 +221,7 @@ export default function Auth() {
                 onClick={handleGoogleSignIn}
                 disabled={loading}
               >
-                Continuar com Google
+                Continue with Google
               </Button>
             </TabsContent>
             
@@ -235,12 +234,12 @@ export default function Auth() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="seu@email.com"
+                    placeholder="your@email.com"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-password">Senha</Label>
+                  <Label htmlFor="signup-password">Password</Label>
                   <Input
                     id="signup-password"
                     type="password"
@@ -251,18 +250,18 @@ export default function Auth() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="username">Nome de usuário</Label>
+                  <Label htmlFor="username">Username</Label>
                   <Input
                     id="username"
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="meunome"
+                    placeholder="yourname"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="avatar">Foto de perfil</Label>
+                  <Label htmlFor="avatar">Profile image</Label>
                   <div className="flex items-center gap-4">
                     <Avatar className="h-16 w-16">
                       <AvatarImage src={avatarPreview || undefined} />
@@ -280,7 +279,7 @@ export default function Auth() {
                   </div>
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Criando conta..." : "Criar conta"}
+                  {loading ? "Signing up..." : "Sign Up"}
                 </Button>
               </form>
               
@@ -289,7 +288,7 @@ export default function Auth() {
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">ou</span>
+                  <span className="bg-card px-2 text-muted-foreground">or</span>
                 </div>
               </div>
 
@@ -300,7 +299,7 @@ export default function Auth() {
                 onClick={handleGoogleSignIn}
                 disabled={loading}
               >
-                Continuar com Google
+                Continue with Google
               </Button>
             </TabsContent>
           </Tabs>
