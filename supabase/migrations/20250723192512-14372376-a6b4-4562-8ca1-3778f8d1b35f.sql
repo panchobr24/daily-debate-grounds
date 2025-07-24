@@ -184,9 +184,9 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
 
 -- Insert some initial debate rooms
 INSERT INTO public.debate_rooms (title, description, topic) VALUES
-('Tecnologia vs Humanidade', 'A tecnologia está nos aproximando ou afastando uns dos outros?', 'A dependência tecnológica está prejudicando nossas habilidades sociais?'),
-('Trabalho Remoto', 'O futuro do trabalho é 100% remoto ou híbrido?', 'As empresas devem permitir trabalho remoto permanente?'),
-('Redes Sociais', 'As redes sociais fazem mais mal do que bem?', 'Deveria haver idade mínima para usar redes sociais?'),
-('Sustentabilidade', 'Mudanças climáticas: responsabilidade individual ou corporativa?', 'Cada pessoa pode fazer diferença no meio ambiente?'),
-('Educação Digital', 'Ensino online é tão eficaz quanto presencial?', 'A educação tradicional precisa de uma revolução digital?'),
-('Inteligência Artificial', 'IA vai criar ou destruir empregos?', 'Devemos ter medo ou abraçar a inteligência artificial?');
+('Technology vs Humanity', 'Is technology bringing us closer or pushing us apart?', 'Is technological dependence harming our social skills?'),
+('Remote Work', 'Is the future of work 100% remote or hybrid?', 'Should companies allow permanent remote work?'),
+('Social Media', 'Do social media do more harm than good?', 'Should there be a minimum age to use social media?'),
+('Sustainability', 'Climate change: individual or corporate responsibility?', 'Can each person make a difference in the environment?'),
+('Digital Education', 'Is online learning as effective as in-person?', 'Does traditional education need a digital revolution?'),
+('Artificial Intelligence', 'Will AI create or destroy jobs?', 'Should we fear or embrace artificial intelligence?');

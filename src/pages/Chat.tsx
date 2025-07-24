@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Send, ThumbsUp, ThumbsDown, ArrowLeft, Users } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale';
 
 interface DebateRoom {
   id: string;
@@ -89,8 +89,8 @@ export default function Chat() {
 
     if (error) {
       toast({
-        title: "Erro ao carregar sala",
-        description: "Não foi possível carregar a sala de debate.",
+        title: "Error loading room",
+        description: "Could not load the debate room.",
         variant: "destructive",
       });
       navigate('/');
@@ -112,7 +112,7 @@ export default function Chat() {
 
     if (messagesError) {
       toast({
-        title: "Erro ao carregar mensagens",
+        title: "Error loading messages",
         description: messagesError.message,
         variant: "destructive",
       });
@@ -203,7 +203,7 @@ export default function Chat() {
 
     if (error) {
       toast({
-        title: "Erro ao enviar mensagem",
+        title: "Error sending message",
         description: error.message,
         variant: "destructive",
       });
@@ -272,12 +272,12 @@ export default function Chat() {
   if (!room) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-lg">Sala não encontrada</p>
-          <Button onClick={() => navigate('/')} className="mt-4">
-            Voltar ao início
-          </Button>
-        </div>
+              <div className="text-center">
+        <p className="text-lg">Room not found</p>
+        <Button onClick={() => navigate('/')} className="mt-4">
+          Back to home
+        </Button>
+      </div>
       </div>
     );
   }
@@ -301,7 +301,7 @@ export default function Chat() {
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Users className="h-4 w-4" />
-            <span>{messages.length > 0 ? new Set(messages.map(m => m.user_id)).size : 0} participantes</span>
+            <span>{messages.length > 0 ? new Set(messages.map(m => m.user_id)).size : 0} participants</span>
           </div>
         </div>
       </div>
@@ -310,7 +310,7 @@ export default function Chat() {
       <div className="bg-card border-b p-4">
         <div className="container mx-auto">
           <Badge variant="secondary" className="bg-turf-accent/10 text-turf-accent border-turf-accent/20">
-            Tópico do debate
+            Debate topic
           </Badge>
           <p className="mt-2 text-lg font-medium">{room.topic}</p>
         </div>
@@ -322,7 +322,7 @@ export default function Chat() {
           <div className="container mx-auto max-w-4xl space-y-4">
             {messages.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">Seja o primeiro a iniciar o debate!</p>
+                <p className="text-muted-foreground">Be the first to start the debate!</p>
               </div>
             ) : (
               messages.map((message) => (
@@ -336,11 +336,11 @@ export default function Chat() {
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold">{message.profiles?.username || 'Usuário'}</span>
+                        <span className="font-semibold">{message.profiles?.username || 'User'}</span>
                         <span className="text-xs text-muted-foreground">
                           {formatDistanceToNow(new Date(message.created_at), { 
                             addSuffix: true, 
-                            locale: ptBR 
+                            locale: enUS 
                           })}
                         </span>
                       </div>
@@ -382,7 +382,7 @@ export default function Chat() {
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Digite sua mensagem..."
+              placeholder="Type your message..."
               className="flex-1"
               disabled={sending}
             />

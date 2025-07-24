@@ -7,7 +7,7 @@ import { Leaderboard } from "@/components/ui/leaderboard";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { enUS } from "date-fns/locale";
 
 interface DebateRoom {
   id: string;
@@ -48,10 +48,10 @@ const Index = () => {
     const now = new Date();
     
     if (expiryDate < now) {
-      return "Expirado";
+      return "Expired";
     }
     
-    return formatDistanceToNow(expiryDate, { locale: ptBR });
+    return formatDistanceToNow(expiryDate, { locale: enUS });
   };
 
   const handleJoinRoom = (roomId: string) => {

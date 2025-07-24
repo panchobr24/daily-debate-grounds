@@ -47,7 +47,7 @@ export default function Profile() {
       };
       reader.readAsDataURL(file);
     } else {
-      // Se o usuário limpar o input, volta para o avatar atual
+      // If the user clears the input, return to the current avatar
       setAvatarFile(null);
       setAvatarPreview(profile.avatar_url || null);
     }
@@ -74,7 +74,7 @@ export default function Profile() {
         return;
       }
     }
-    // Se username estiver vazio, usa o valor atual do perfil
+    // If username is empty, use the current profile value
     const usernameToSave = username.trim() === "" ? profile.username : username;
     const { error: updateError } = await supabase.from('profiles').update({ username: usernameToSave, avatar_url: avatarUrl }).eq('user_id', user?.id);
     setLoading(false);
@@ -107,9 +107,9 @@ export default function Profile() {
     if (!window.confirm("Are you sure you want to delete your profile? This action cannot be undone.")) return;
     setLoading(true);
     setError("");
-    // Remove da tabela profiles
+    // Remove from profiles table
     await supabase.from('profiles').delete().eq('user_id', user?.id);
-    // Remove usuário do auth
+    // Remove user from auth
     await supabase.auth.admin.deleteUser(user?.id!);
     setLoading(false);
     signOut();
