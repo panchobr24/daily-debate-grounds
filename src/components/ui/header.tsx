@@ -95,6 +95,7 @@ export const Header = () => {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => navigate("/profile")}>Settings</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/profile/activity")}>My Activity</DropdownMenuItem>
                 <DropdownMenuItem disabled>Score: coming soon</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={signOut}>Sign out</DropdownMenuItem>
