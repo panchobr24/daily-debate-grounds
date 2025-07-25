@@ -31,12 +31,18 @@ export const Header = () => {
         </div>
         
         <nav className="hidden md:flex items-center space-x-6">
-          <a href="#rooms" className="text-sm font-medium hover:text-turf-purple transition-colors">
+          <button 
+            onClick={() => window.location.hash = '#rooms'}
+            className="text-sm font-medium hover:text-turf-purple transition-colors"
+          >
             Debate Rooms
-          </a>
-          <a href="#leaderboard" className="text-sm font-medium hover:text-turf-purple transition-colors">
+          </button>
+          <button 
+            onClick={() => window.location.hash = '#leaderboard'}
+            className="text-sm font-medium hover:text-turf-purple transition-colors"
+          >
             Leaderboard
-          </a>
+          </button>
           <button 
             onClick={() => navigate("/about")}
             className="text-sm font-medium hover:text-turf-purple transition-colors"
