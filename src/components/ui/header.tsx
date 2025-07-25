@@ -37,9 +37,12 @@ export const Header = () => {
           <a href="#leaderboard" className="text-sm font-medium hover:text-turf-purple transition-colors">
             Leaderboard
           </a>
-          <a href="#about" className="text-sm font-medium hover:text-turf-purple transition-colors">
+          <button 
+            onClick={() => navigate("/about")}
+            className="text-sm font-medium hover:text-turf-purple transition-colors"
+          >
             About
-          </a>
+          </button>
         </nav>
 
         <div className="flex items-center space-x-3">

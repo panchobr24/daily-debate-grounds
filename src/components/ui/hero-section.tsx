@@ -22,17 +22,6 @@ export const HeroSection = () => {
             encouraging thoughtful discussion over endless scrolling.
           </p>
           
-          <div className="mt-10 flex items-center justify-center gap-x-6">
-            <Button 
-              size="lg" 
-              className="bg-gradient-to-r from-turf-purple to-turf-accent hover:opacity-90 transition-opacity px-8 py-3 text-lg"
-            >
-              Start Debating
-            </Button>
-            <Button variant="outline" size="lg" className="px-8 py-3 text-lg">
-              Learn More
-            </Button>
-          </div>
 
           {/* Feature highlights */}
           <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-8">

@@ -10,6 +10,7 @@ import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import ProfileActivity from "./pages/ProfileActivity";
+import About from "./pages/About";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/chat/:roomId" element={<Chat />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/activity" element={<ProfileActivity />} />
+            <Route path="/about" element={<About />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
