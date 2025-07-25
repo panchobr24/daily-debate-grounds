@@ -123,3 +123,20 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Fade page transition */
+.fade-page {
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.fade-page-enter {
+  opacity: 0;
+}
+.fade-page-enter-active {
+  opacity: 1;
+}
+.fade-page-exit {
+  opacity: 1;
+}
+.fade-page-exit-active {
+  opacity: 0;
+}

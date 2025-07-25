@@ -32,20 +32,14 @@ export const Header = () => {
         
         <nav className="hidden md:flex items-center space-x-6">
           <button 
-            onClick={() => window.location.hash = '#rooms'}
-            className="text-sm font-medium hover:text-turf-purple transition-colors"
+            onClick={() => navigate("/")}
+            className="text-sm font-medium hover:text-turf-purple transition-colors navbar-link"
           >
-            Debate Rooms
-          </button>
-          <button 
-            onClick={() => window.location.hash = '#leaderboard'}
-            className="text-sm font-medium hover:text-turf-purple transition-colors"
-          >
-            Leaderboard
+            Home
           </button>
           <button 
             onClick={() => navigate("/about")}
-            className="text-sm font-medium hover:text-turf-purple transition-colors"
+            className="text-sm font-medium hover:text-turf-purple transition-colors navbar-link"
           >
             About
           </button>

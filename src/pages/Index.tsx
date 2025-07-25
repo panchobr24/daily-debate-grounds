@@ -35,7 +35,7 @@ const Index = () => {
       .from('debate_rooms')
       .select('*')
       .eq('is_active', true)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: true });
 
     if (!error && data) {
       setDebateRooms(data);
@@ -84,14 +84,14 @@ const Index = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-              {debateRooms.map((room) => (
+              {debateRooms.slice(0, 6).map((room, idx) => (
                 <DebateRoomCard 
                   key={room.id}
                   topic={room.topic}
                   participants={Math.floor(Math.random() * 200) + 50}
                   messages={Math.floor(Math.random() * 500) + 100}
                   timeRemaining={formatTimeLeft(room.expires_at)}
-                  roomNumber={parseInt(room.id.slice(-1)) || 1}
+                  roomNumber={idx + 1}
                   isActive={room.is_active}
                   onClick={() => handleJoinRoom(room.id)}
                 />
