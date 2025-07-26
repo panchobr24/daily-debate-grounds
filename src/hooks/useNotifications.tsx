@@ -53,7 +53,7 @@ export const useNotifications = () => {
           content: message.content,
           created_at: message.created_at,
           sender_profile: profiles?.find(p => p.user_id === message.sender_id) || null,
-          is_read: false // You can add a read status field to the database later
+          is_read: message.is_read || false
         }));
 
         setNotifications(notificationsWithProfiles);
@@ -67,6 +67,13 @@ export const useNotifications = () => {
   };
 
   const markAsRead = async (notificationId: string) => {
+    // Update in database
+    await supabase
+      .from('private_messages')
+      .update({ is_read: true })
+      .eq('id', notificationId);
+
+    // Update local state
     setNotifications(prev => 
       prev.map(notification => 
         notification.id === notificationId 

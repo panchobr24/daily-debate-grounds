@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '@/hooks/use-toast';
+import { useMentions } from '@/hooks/useMentions';
 import { supabase } from '@/integrations/supabase/client';
 import { Send, ThumbsUp, ThumbsDown, ArrowLeft, Users } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -55,6 +56,7 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { profile } = useProfile();
+  const { createMentions } = useMentions();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -194,6 +196,15 @@ export default function Chat() {
     };
   };
 
+  // Function to extract mentions from message content
+  const extractMentions = (content: string): string[] => {
+    const mentionRegex = /@(\w+)/g;
+    const matches = content.match(mentionRegex);
+    if (!matches) return [];
+    
+    return matches.map(match => match.slice(1)); // Remove @ symbol
+  };
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !user) return;
@@ -231,6 +242,12 @@ export default function Chat() {
       };
       
       setMessages(prev => [...prev, newMessageWithProfile]);
+
+      // Process mentions
+      const mentionedUsernames = extractMentions(messageContent);
+      if (mentionedUsernames.length > 0) {
+        await createMentions(newMessageData.id, roomId, mentionedUsernames);
+      }
     }
     setSending(false);
   };
@@ -374,7 +391,18 @@ export default function Chat() {
                           })}
                         </span>
                       </div>
-                      <p className="text-foreground mb-3">{message.content}</p>
+                      <p className="text-foreground mb-3">
+                        {message.content.split(/(@\w+)/).map((part, index) => {
+                          if (part.startsWith('@')) {
+                            return (
+                              <span key={index} className="text-blue-500 font-medium">
+                                {part}
+                              </span>
+                            );
+                          }
+                          return part;
+                        })}
+                      </p>
                       <div className="flex items-center gap-2">
                         <Button
                           variant="ghost"

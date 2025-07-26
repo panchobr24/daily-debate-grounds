@@ -7,6 +7,7 @@ import { useFriends } from "@/hooks/useFriends";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { NotificationsPanel } from "@/components/ui/notifications-panel";
+import { MentionsPanel } from "@/components/ui/mentions-panel";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -75,6 +76,7 @@ export const Header = () => {
             </>
           ) : (
             <>
+              <MentionsPanel />
               <NotificationsPanel />
               <DropdownMenu>
               <DropdownMenuTrigger asChild>
