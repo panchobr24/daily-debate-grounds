@@ -3,7 +3,10 @@ import turfLogo from "@/assets/turf-logo.png";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { useFriends } from "@/hooks/useFriends";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { NotificationsPanel } from "@/components/ui/notifications-panel";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -71,7 +74,9 @@ export const Header = () => {
               </Button>
             </>
           ) : (
-            <DropdownMenu>
+            <>
+              <NotificationsPanel />
+              <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   ref={menuTriggerRef}
@@ -112,6 +117,7 @@ export const Header = () => {
                 <DropdownMenuItem onClick={signOut}>Sign out</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            </>
           )}
         </div>
       </div>

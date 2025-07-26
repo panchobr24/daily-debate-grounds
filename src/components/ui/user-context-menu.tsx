@@ -102,8 +102,6 @@ export function UserContextMenu({ userId, username, avatarUrl, children }: UserC
 
   const isAlreadyFriend = checkIfFriend();
 
-  console.log('UserContextMenu rendered:', { userId, username, isAlreadyFriend, user: user?.id });
-
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
@@ -138,11 +136,6 @@ export function UserContextMenu({ userId, username, avatarUrl, children }: UserC
             )}
           </>
         )}
-        
-        <ContextMenuItem>
-          <User className="mr-2 h-4 w-4" />
-          View Profile
-        </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
   );
