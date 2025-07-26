@@ -56,11 +56,7 @@ export default function PrivateChat() {
     try {
       const { data, error } = await supabase
         .from('private_chat_rooms')
-        .select(`
-          *,
-          user1_profile:profiles!private_chat_rooms_user1_id_fkey(*),
-          user2_profile:profiles!private_chat_rooms_user2_id_fkey(*)
-        `)
+        .select('*')
         .eq('id', roomId)
         .single();
 
@@ -85,7 +81,24 @@ export default function PrivateChat() {
         return;
       }
 
-      setRoom(data);
+      // Get profile data for both users
+      const { data: user1Profile } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('user_id', data.user1_id)
+        .single();
+
+      const { data: user2Profile } = await supabase
+        .from('profiles')
+        .select('username, avatar_url')
+        .eq('user_id', data.user2_id)
+        .single();
+
+      setRoom({
+        ...data,
+        user1_profile: user1Profile,
+        user2_profile: user2Profile
+      });
     } catch (error) {
       console.error('Error fetching room:', error);
       toast({
@@ -102,15 +115,30 @@ export default function PrivateChat() {
     try {
       const { data, error } = await supabase
         .from('private_messages')
-        .select(`
-          *,
-          sender_profile:profiles!private_messages_sender_id_fkey(username, avatar_url)
-        `)
+        .select('*')
         .eq('room_id', roomId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
+      
+      if (data) {
+        // Get profile data for each sender
+        const messagesWithProfiles = await Promise.all(
+          data.map(async (message) => {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('username, avatar_url')
+              .eq('user_id', message.sender_id)
+              .single();
+            
+            return {
+              ...message,
+              sender_profile: profile
+            };
+          })
+        );
+        setMessages(messagesWithProfiles);
+      }
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
@@ -166,18 +194,18 @@ export default function PrivateChat() {
         },
         async (payload) => {
           // Fetch the message with profile data
-          const { data, error } = await supabase
-            .from('private_messages')
-            .select(`
-              *,
-              sender_profile:profiles!private_messages_sender_id_fkey(username, avatar_url)
-            `)
-            .eq('id', payload.new.id)
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('username, avatar_url')
+            .eq('user_id', payload.new.sender_id)
             .single();
 
-          if (!error && data) {
-            setMessages(prev => [...prev, data]);
-          }
+          const messageWithProfile = {
+            ...payload.new,
+            sender_profile: profile
+          };
+
+          setMessages(prev => [...prev, messageWithProfile as PrivateMessage]);
         }
       )
       .subscribe();

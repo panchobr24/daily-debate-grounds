@@ -37,6 +37,14 @@ export const Header = () => {
           >
             Home
           </button>
+          {user && (
+            <button 
+              onClick={() => navigate("/friends")}
+              className="text-sm font-medium hover:text-turf-purple transition-colors navbar-link"
+            >
+              Friends
+            </button>
+          )}
           <button 
             onClick={() => navigate("/about")}
             className="text-sm font-medium hover:text-turf-purple transition-colors navbar-link"

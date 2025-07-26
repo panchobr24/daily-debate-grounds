@@ -41,24 +41,30 @@ export const useFriends = () => {
     try {
       const { data, error } = await supabase
         .from('friendships')
-        .select(`
-          *,
-          friend_profile:profiles!friendships_user1_id_fkey(*),
-          friend_profile2:profiles!friendships_user2_id_fkey(*)
-        `)
+        .select('*')
         .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`);
 
       if (error) throw error;
 
-      // Transform the data to get the friend's profile
-      const transformedFriends = data?.map(friendship => ({
-        ...friendship,
-        friend_profile: friendship.user1_id === user.id 
-          ? friendship.friend_profile2 
-          : friendship.friend_profile
-      })) || [];
-
-      setFriends(transformedFriends);
+      if (data) {
+        // Get profile data for each friend
+        const friendsWithProfiles = await Promise.all(
+          data.map(async (friendship) => {
+            const friendId = friendship.user1_id === user.id ? friendship.user2_id : friendship.user1_id;
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('user_id, username, avatar_url')
+              .eq('user_id', friendId)
+              .single();
+            
+            return {
+              ...friendship,
+              friend_profile: profile
+            };
+          })
+        );
+        setFriends(friendsWithProfiles);
+      }
     } catch (error) {
       console.error('Error fetching friends:', error);
     } finally {
@@ -73,15 +79,30 @@ export const useFriends = () => {
       // Get pending requests sent to me
       const { data, error } = await supabase
         .from('friend_requests')
-        .select(`
-          *,
-          requester_profile:profiles!friend_requests_requester_id_fkey(*)
-        `)
+        .select('*')
         .eq('receiver_id', user.id)
         .eq('status', 'pending');
 
       if (error) throw error;
-      setFriendRequests(data || []);
+      
+      if (data) {
+        // Get profile data for each requester
+        const requestsWithProfiles = await Promise.all(
+          data.map(async (request) => {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('username, avatar_url')
+              .eq('user_id', request.requester_id)
+              .single();
+            
+            return {
+              ...request,
+              requester_profile: profile
+            };
+          })
+        );
+        setFriendRequests(requestsWithProfiles as FriendRequest[]);
+      }
     } catch (error) {
       console.error('Error fetching friend requests:', error);
     }
