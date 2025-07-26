@@ -26,62 +26,19 @@ export const useMentions = () => {
   const [unreadMentions, setUnreadMentions] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  const fetchMentions = async () => {
+    const fetchMentions = async () => {
     if (!user) return;
 
     setLoading(true);
     try {
       console.log('Fetching mentions for user:', user.id);
-              // Check if mentions table exists first
-        const { data: mentionsData, error: mentionsError } = await supabase
-          .from('mentions')
-          .select('*')
-          .eq('mentioned_user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(50);
-
-        if (mentionsError) {
-          console.error('Error fetching mentions:', mentionsError);
-          // If table doesn't exist, just return empty array
-          setMentions([]);
-          setUnreadMentions(0);
-          return;
-        }
-
-              console.log('Found mentions:', mentionsData);
-        
-        if (mentionsData) {
-          // Get profiles for mentioned_by users
-          const mentionedByIds = [...new Set(mentionsData.map(m => m.mentioned_by_id))];
-          const { data: profiles } = await supabase
-            .from('profiles')
-            .select('user_id, username, avatar_url')
-            .in('user_id', mentionedByIds);
-
-          // Get message contents
-          const messageIds = [...new Set(mentionsData.map(m => m.message_id))];
-          const { data: messages } = await supabase
-            .from('messages')
-            .select('id, content')
-            .in('id', messageIds);
-
-          // Get room titles
-          const roomIds = [...new Set(mentionsData.map(m => m.room_id))];
-          const { data: rooms } = await supabase
-            .from('debate_rooms')
-            .select('id, title')
-            .in('id', roomIds);
-
-          const mentionsWithDetails = mentionsData.map(mention => ({
-            ...mention,
-            mentioned_by_profile: profiles?.find(p => p.user_id === mention.mentioned_by_id) || null,
-            message_content: messages?.find(m => m.id === mention.message_id)?.content || '',
-            room_title: rooms?.find(r => r.id === mention.room_id)?.title || ''
-          }));
-
-          setMentions(mentionsWithDetails);
-          setUnreadMentions(mentionsWithDetails.length); // Assume all are unread for now
-        }
+      
+      // Since mentions table doesn't exist, we'll use a different approach
+      // For now, just set empty mentions
+      setMentions([]);
+      setUnreadMentions(0);
+      console.log('Mentions table does not exist, using empty state');
+      
     } catch (error) {
       console.error('Error fetching mentions:', error);
     } finally {
@@ -169,6 +126,7 @@ export const useMentions = () => {
   const subscribeToNewMentions = () => {
     if (!user) return;
 
+    // Subscribe to new messages to detect mentions in real-time
     const channel = supabase
       .channel('mentions_notifications')
       .on(
@@ -176,54 +134,59 @@ export const useMentions = () => {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'mentions',
-          filter: `mentioned_user_id=eq.${user.id}`
+          table: 'messages',
+          filter: `user_id.neq.${user.id}` // Only messages from other users
         },
         async (payload) => {
-          // Get the mentioner's profile
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('username, avatar_url')
-            .eq('user_id', payload.new.mentioned_by_id)
-            .single();
-
-          // Get the message content
-          const { data: message } = await supabase
-            .from('messages')
-            .select('content')
-            .eq('id', payload.new.message_id)
-            .single();
-
-          // Get the room title
-          const { data: room } = await supabase
-            .from('debate_rooms')
-            .select('title')
-            .eq('id', payload.new.room_id)
-            .single();
-
-          const newMention: Mention = {
-            id: payload.new.id,
-            message_id: payload.new.message_id,
-            mentioned_user_id: payload.new.mentioned_user_id,
-            mentioned_by_id: payload.new.mentioned_by_id,
-            room_id: payload.new.room_id,
-            is_read: payload.new.is_read,
-            created_at: payload.new.created_at,
-            mentioned_by_profile: profile,
-            message_content: message?.content || '',
-            room_title: room?.title || ''
-          };
-
-          setMentions(prev => [newMention, ...prev.slice(0, 49)]);
-          setUnreadMentions(prev => prev + 1);
-
-          // Show toast notification
-          toast({
-            title: `You were mentioned by ${profile?.username || 'Someone'}`,
-            description: message?.content?.length > 50 
-              ? `${message.content.substring(0, 50)}...` 
-              : message?.content || '',
+          const messageContent = payload.new.content;
+          const mentionedUsernames = extractMentions(messageContent);
+          
+          // Check if current user is mentioned
+          const currentUserMentioned = mentionedUsernames.some(username => {
+            // Get current user's username
+            const currentUsername = user.email?.split('@')[0] || user.id;
+            return username.toLowerCase() === currentUsername.toLowerCase();
           });
+
+          if (currentUserMentioned) {
+            // Get the mentioner's profile
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('username, avatar_url')
+              .eq('user_id', payload.new.user_id)
+              .single();
+
+            // Get the room title
+            const { data: room } = await supabase
+              .from('debate_rooms')
+              .select('title')
+              .eq('id', payload.new.room_id)
+              .single();
+
+            const newMention: Mention = {
+              id: `mention_${payload.new.id}_${Date.now()}`, // Generate unique ID
+              message_id: payload.new.id,
+              mentioned_user_id: user.id,
+              mentioned_by_id: payload.new.user_id,
+              room_id: payload.new.room_id,
+              is_read: false,
+              created_at: payload.new.created_at,
+              mentioned_by_profile: profile,
+              message_content: messageContent,
+              room_title: room?.title || ''
+            };
+
+            setMentions(prev => [newMention, ...prev.slice(0, 49)]);
+            setUnreadMentions(prev => prev + 1);
+
+            // Show toast notification
+            toast({
+              title: `You were mentioned by ${profile?.username || 'Someone'}`,
+              description: messageContent.length > 50 
+                ? `${messageContent.substring(0, 50)}...` 
+                : messageContent,
+            });
+          }
         }
       )
       .subscribe();
@@ -231,6 +194,15 @@ export const useMentions = () => {
     return () => {
       supabase.removeChannel(channel);
     };
+  };
+
+  // Helper function to extract mentions from message content
+  const extractMentions = (content: string): string[] => {
+    const mentionRegex = /@(\w+)/g;
+    const matches = content.match(mentionRegex);
+    if (!matches) return [];
+    
+    return matches.map(match => match.slice(1)); // Remove @ symbol
   };
 
   useEffect(() => {

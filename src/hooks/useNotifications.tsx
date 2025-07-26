@@ -75,14 +75,15 @@ export const useNotifications = () => {
   };
 
   const markAsRead = async (notificationId: string) => {
-    // For now, just update local state since is_read column doesn't exist
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === notificationId 
-          ? { ...notification, is_read: true }
-          : notification
-      )
-    );
+    console.log('Marking notification as read:', notificationId);
+    
+    // Remove the notification from the list entirely
+    setNotifications(prev => {
+      const filtered = prev.filter(notification => notification.id !== notificationId);
+      console.log('Removed notification, remaining count:', filtered.length);
+      return filtered;
+    });
+    
     setUnreadCount(prev => {
       const newCount = Math.max(0, prev - 1);
       console.log('Marked as read, new unread count:', newCount);
@@ -91,10 +92,10 @@ export const useNotifications = () => {
   };
 
   const markAllAsRead = async () => {
-    // For now, just update local state since is_read column doesn't exist
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, is_read: true }))
-    );
+    console.log('Marking all notifications as read');
+    
+    // Clear all notifications
+    setNotifications([]);
     setUnreadCount(0);
     console.log('Marked all as read, unread count set to 0');
   };
