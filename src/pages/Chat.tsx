@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +15,7 @@ import { Send, ThumbsUp, ThumbsDown, ArrowLeft, Users } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import { UserContextMenu } from '@/components/ui/user-context-menu';
+import { MentionAutocomplete } from '@/components/ui/mention-autocomplete';
 
 interface DebateRoom {
   id: string;
@@ -53,6 +55,9 @@ export default function Chat() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<Profile[]>([]);
+  const [showMentionAutocomplete, setShowMentionAutocomplete] = useState(false);
+  const [cursorPosition, setCursorPosition] = useState(0);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const { profile } = useProfile();
@@ -203,6 +208,45 @@ export default function Chat() {
     if (!matches) return [];
     
     return matches.map(match => match.slice(1)); // Remove @ symbol
+  };
+
+  // Function to handle input changes and detect @ symbol
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setNewMessage(value);
+    
+    // Check if we should show autocomplete
+    const cursorPos = e.target.selectionStart || 0;
+    setCursorPosition(cursorPos);
+    
+    const beforeCursor = value.slice(0, cursorPos);
+    const hasMention = beforeCursor.match(/@(\w*)$/);
+    
+    setShowMentionAutocomplete(!!hasMention);
+  };
+
+  // Function to handle user selection from autocomplete
+  const handleUserSelect = (username: string) => {
+    const beforeCursor = newMessage.slice(0, cursorPosition);
+    const afterCursor = newMessage.slice(cursorPosition);
+    
+    // Find the @ symbol position
+    const atIndex = beforeCursor.lastIndexOf('@');
+    if (atIndex === -1) return;
+    
+    // Replace the @username with the selected username
+    const newValue = beforeCursor.slice(0, atIndex) + '@' + username + ' ' + afterCursor;
+    setNewMessage(newValue);
+    setShowMentionAutocomplete(false);
+    
+    // Focus back to input and set cursor position
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        const newCursorPos = atIndex + username.length + 2; // +2 for @ and space
+        inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+      }
+    }, 0);
   };
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -437,13 +481,31 @@ export default function Chat() {
       <div className="bg-card border-t p-4">
         <div className="container mx-auto max-w-4xl">
           <form onSubmit={sendMessage} className="flex gap-2">
-            <Input
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type your message..."
-              className="flex-1"
-              disabled={sending}
-            />
+            <div className="relative flex-1">
+              <Textarea
+                ref={inputRef}
+                value={newMessage}
+                onChange={handleInputChange}
+                placeholder="Type your message... Use @ to mention someone"
+                className="min-h-[60px] max-h-[120px] resize-none"
+                disabled={sending}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage(e);
+                  }
+                }}
+              />
+              {showMentionAutocomplete && (
+                <MentionAutocomplete
+                  roomId={roomId}
+                  inputValue={newMessage}
+                  cursorPosition={cursorPosition}
+                  onSelectUser={handleUserSelect}
+                  onClose={() => setShowMentionAutocomplete(false)}
+                />
+              )}
+            </div>
             <Button type="submit" disabled={sending || !newMessage.trim()}>
               <Send className="h-4 w-4" />
             </Button>

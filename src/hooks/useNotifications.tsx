@@ -33,6 +33,7 @@ export const useNotifications = () => {
         .from('private_messages')
         .select('*')
         .neq('sender_id', user.id)
+        .is('is_read', false)
         .order('created_at', { ascending: false })
         .limit(10);
 
@@ -85,6 +86,14 @@ export const useNotifications = () => {
   };
 
   const markAllAsRead = async () => {
+    // Update in database
+    await supabase
+      .from('private_messages')
+      .update({ is_read: true })
+      .neq('sender_id', user?.id)
+      .is('is_read', false);
+
+    // Update local state
     setNotifications(prev => 
       prev.map(notification => ({ ...notification, is_read: true }))
     );
