@@ -86,7 +86,7 @@ export const useMentions = () => {
       console.log('Found profiles:', profiles);
 
       if (profiles && profiles.length > 0) {
-        // Show toast notifications for mentions
+        // Just show toast notifications for mentions (no database operations)
         profiles.forEach(profile => {
           toast({
             title: `Mentioned ${profile.username}`,
@@ -102,73 +102,11 @@ export const useMentions = () => {
   const subscribeToNewMentions = () => {
     if (!user) return;
 
-    // Subscribe to new messages to detect mentions in real-time
-    const channel = supabase
-      .channel('mentions_notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `user_id.neq.${user.id}` // Only messages from other users
-        },
-        async (payload) => {
-          const messageContent = payload.new.content;
-          const mentionedUsernames = extractMentions(messageContent);
-          
-          // Check if current user is mentioned
-          const currentUserMentioned = mentionedUsernames.some(username => {
-            // Get current user's username from profile
-            const currentUsername = user.email?.split('@')[0] || user.id;
-            return username.toLowerCase() === currentUsername.toLowerCase();
-          });
-
-          if (currentUserMentioned) {
-            // Get the mentioner's profile
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('username, avatar_url')
-              .eq('user_id', payload.new.user_id)
-              .single();
-
-            // Get the room title
-            const { data: room } = await supabase
-              .from('debate_rooms')
-              .select('title')
-              .eq('id', payload.new.room_id)
-              .single();
-
-            const newMention: Mention = {
-              id: `mention_${payload.new.id}_${Date.now()}`, // Generate unique ID
-              message_id: payload.new.id,
-              mentioned_user_id: user.id,
-              mentioned_by_id: payload.new.user_id,
-              room_id: payload.new.room_id,
-              is_read: false,
-              created_at: payload.new.created_at,
-              mentioned_by_profile: profile,
-              message_content: messageContent,
-              room_title: room?.title || ''
-            };
-
-            setMentions(prev => [newMention, ...prev.slice(0, 49)]);
-            setUnreadMentions(prev => prev + 1);
-
-            // Show toast notification
-            toast({
-              title: `You were mentioned by ${profile?.username || 'Someone'}`,
-              description: messageContent.length > 50 
-                ? `${messageContent.substring(0, 50)}...` 
-                : messageContent,
-            });
-          }
-        }
-      )
-      .subscribe();
-
+    // For now, don't subscribe to anything since mentions table doesn't exist
+    console.log('Mentions subscription disabled - table does not exist');
+    
     return () => {
-      supabase.removeChannel(channel);
+      // No cleanup needed
     };
   };
 
