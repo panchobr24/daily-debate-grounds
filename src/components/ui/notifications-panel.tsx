@@ -77,7 +77,7 @@ export function NotificationsPanel() {
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
                   className={`p-3 border-b cursor-pointer hover:bg-muted/50 transition-colors ${
-                    !notification.is_read ? 'bg-blue-50 dark:bg-blue-950/20' : ''
+                    !notification.is_read ? 'bg-muted/30' : ''
                   }`}
                 >
                   <div className="flex items-start gap-3">

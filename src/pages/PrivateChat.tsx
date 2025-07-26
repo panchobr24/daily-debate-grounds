@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, Send, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { enUS } from 'date-fns/locale';
@@ -47,6 +48,7 @@ export default function PrivateChat() {
   const [friendProfile, setFriendProfile] = useState<FriendProfile | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
+  const { profile } = useProfile();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -170,13 +172,18 @@ export default function PrivateChat() {
     if (!newMessage.trim() || !user) return;
 
     setSending(true);
-    const { error } = await supabase
+    const messageContent = newMessage.trim();
+    setNewMessage(''); // Clear input immediately for better UX
+
+    const { data: newMessageData, error } = await supabase
       .from('private_messages')
       .insert({
-        content: newMessage.trim(),
+        content: messageContent,
         room_id: roomId!,
         sender_id: user.id
-      });
+      })
+      .select()
+      .single();
 
     if (error) {
       toast({
@@ -184,8 +191,18 @@ export default function PrivateChat() {
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      setNewMessage('');
+      setNewMessage(messageContent); // Restore message if error
+    } else if (newMessageData) {
+      // Add the new message to the local state immediately
+      const newMessageWithProfile: PrivateMessage = {
+        ...newMessageData,
+        sender_profile: {
+          username: profile?.username || user.email || 'User',
+          avatar_url: profile?.avatar_url || null
+        }
+      };
+      
+      setMessages(prev => [...prev, newMessageWithProfile]);
     }
     setSending(false);
   };

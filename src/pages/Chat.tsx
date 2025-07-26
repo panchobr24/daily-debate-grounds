@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
+import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Send, ThumbsUp, ThumbsDown, ArrowLeft, Users } from 'lucide-react';
@@ -53,6 +54,7 @@ export default function Chat() {
   const [onlineUsers, setOnlineUsers] = useState<Profile[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
+  const { profile } = useProfile();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -197,13 +199,18 @@ export default function Chat() {
     if (!newMessage.trim() || !user) return;
 
     setSending(true);
-    const { error } = await supabase
+    const messageContent = newMessage.trim();
+    setNewMessage(''); // Clear input immediately for better UX
+
+    const { data: newMessageData, error } = await supabase
       .from('messages')
       .insert({
-        content: newMessage.trim(),
+        content: messageContent,
         room_id: roomId,
         user_id: user.id
-      });
+      })
+      .select()
+      .single();
 
     if (error) {
       toast({
@@ -211,8 +218,19 @@ export default function Chat() {
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      setNewMessage('');
+      setNewMessage(messageContent); // Restore message if error
+    } else if (newMessageData) {
+      // Add the new message to the local state immediately
+      const newMessageWithProfile: Message = {
+        ...newMessageData,
+        profiles: {
+          username: profile?.username || user.email || 'User',
+          avatar_url: profile?.avatar_url || null
+        },
+        message_reactions: []
+      };
+      
+      setMessages(prev => [...prev, newMessageWithProfile]);
     }
     setSending(false);
   };
