@@ -65,6 +65,7 @@ export const useNotifications = () => {
 
         setNotifications(notificationsWithProfiles);
         setUnreadCount(notificationsWithProfiles.length);
+        console.log('Set unread count to:', notificationsWithProfiles.length);
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -82,7 +83,11 @@ export const useNotifications = () => {
           : notification
       )
     );
-    setUnreadCount(prev => Math.max(0, prev - 1));
+    setUnreadCount(prev => {
+      const newCount = Math.max(0, prev - 1);
+      console.log('Marked as read, new unread count:', newCount);
+      return newCount;
+    });
   };
 
   const markAllAsRead = async () => {
@@ -91,6 +96,7 @@ export const useNotifications = () => {
       prev.map(notification => ({ ...notification, is_read: true }))
     );
     setUnreadCount(0);
+    console.log('Marked all as read, unread count set to 0');
   };
 
   const subscribeToNewMessages = () => {

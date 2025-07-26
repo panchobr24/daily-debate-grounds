@@ -13,6 +13,8 @@ export function NotificationsPanel() {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const { notificationsOpen, setNotificationsOpen } = usePanelState();
   const navigate = useNavigate();
+  
+  console.log('NotificationsPanel render - unreadCount:', unreadCount);
 
   const handleNotificationClick = (notification: any) => {
     markAsRead(notification.id);
