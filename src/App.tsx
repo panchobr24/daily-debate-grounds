@@ -7,10 +7,12 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Chat from "./pages/Chat";
+import PrivateChat from "./pages/PrivateChat";
 import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import ProfileActivity from "./pages/ProfileActivity";
 import About from "./pages/About";
+import FriendsTab from "./components/FriendsTab";
 import { CSSTransition, TransitionGroup } from "react-transition-group";
 import { useEffect } from "react";
 
@@ -29,6 +31,8 @@ function AnimatedRoutes() {
           <Route path="/" element={<div className="fade-page"><Index /></div>} />
           <Route path="/auth" element={<div className="fade-page"><Auth /></div>} />
           <Route path="/chat/:roomId" element={<div className="fade-page"><Chat /></div>} />
+          <Route path="/private-chat/:roomId" element={<div className="fade-page"><PrivateChat /></div>} />
+          <Route path="/friends" element={<div className="fade-page"><FriendsTab /></div>} />
           <Route path="/profile" element={<div className="fade-page"><Profile /></div>} />
           <Route path="/profile/activity" element={<div className="fade-page"><ProfileActivity /></div>} />
           <Route path="/about" element={<div className="fade-page"><About /></div>} />
