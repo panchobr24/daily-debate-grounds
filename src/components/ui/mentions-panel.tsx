@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Check, X, AtSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useMentions } from '@/hooks/useMentions';
+import { usePanelState } from '@/hooks/usePanelState';
 import { formatDistanceToNow } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 
 export function MentionsPanel() {
-  const [isOpen, setIsOpen] = useState(false);
+  const { mentionsOpen, setMentionsOpen } = usePanelState();
   const { mentions, unreadMentions, markMentionAsRead, markAllMentionsAsRead } = useMentions();
   const navigate = useNavigate();
 
@@ -21,7 +21,7 @@ export function MentionsPanel() {
     }
     
     navigate(`/chat/${mention.room_id}`);
-    setIsOpen(false);
+    setMentionsOpen(false);
   };
 
   // Always show the mentions bell, but only show badge when there are unread mentions
@@ -32,7 +32,7 @@ export function MentionsPanel() {
       <Button
         variant="ghost"
         size="icon"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setMentionsOpen(!mentionsOpen)}
         className="relative"
       >
         <AtSign className="h-5 w-5" />
@@ -47,7 +47,7 @@ export function MentionsPanel() {
       </Button>
 
       {/* Mentions Panel */}
-      {isOpen && (
+      {mentionsOpen && (
         <Card className="absolute top-12 right-0 w-80 max-h-96 overflow-hidden z-50">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -64,7 +64,7 @@ export function MentionsPanel() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => setMentionsOpen(false)}
                   className="h-6 w-6 p-0"
                 >
                   <X className="h-3 w-3" />

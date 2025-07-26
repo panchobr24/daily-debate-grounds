@@ -1,23 +1,23 @@
-import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Bell, X, Check } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
+import { usePanelState } from '@/hooks/usePanelState';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 
 export function NotificationsPanel() {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { notificationsOpen, setNotificationsOpen } = usePanelState();
   const navigate = useNavigate();
-  const [isOpen, setIsOpen] = useState(false);
 
   const handleNotificationClick = (notification: any) => {
     markAsRead(notification.id);
     navigate(`/private-chat/${notification.room_id}`);
-    setIsOpen(false);
+    setNotificationsOpen(false);
   };
 
   // Always show the bell, but only show badge when there are unread notifications
@@ -28,7 +28,7 @@ export function NotificationsPanel() {
       <Button
         variant="ghost"
         size="icon"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setNotificationsOpen(!notificationsOpen)}
         className="relative"
       >
         <Bell className="h-5 w-5" />
@@ -43,7 +43,7 @@ export function NotificationsPanel() {
       </Button>
 
       {/* Notifications Panel */}
-      {isOpen && (
+      {notificationsOpen && (
         <Card className="absolute top-12 right-0 w-80 max-h-96 overflow-hidden z-50">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -60,7 +60,7 @@ export function NotificationsPanel() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => setNotificationsOpen(false)}
                   className="h-6 w-6 p-0"
                 >
                   <X className="h-3 w-3" />
