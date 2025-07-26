@@ -69,9 +69,9 @@ export const useMentions = () => {
   const createMentions = async (messageId: string, roomId: string, mentionedUsernames: string[]) => {
     if (!user || mentionedUsernames.length === 0) return;
 
+    console.log('Creating mentions for:', mentionedUsernames);
+    
     try {
-      console.log('Creating mentions for:', mentionedUsernames);
-      
       // Get user IDs for mentioned usernames
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
@@ -86,37 +86,13 @@ export const useMentions = () => {
       console.log('Found profiles:', profiles);
 
       if (profiles && profiles.length > 0) {
-        // For now, just show toast notifications since mentions table might not exist
+        // Show toast notifications for mentions
         profiles.forEach(profile => {
           toast({
             title: `Mentioned ${profile.username}`,
             description: `You mentioned ${profile.username} in a debate`,
           });
         });
-
-        // Try to insert into mentions table if it exists
-        try {
-          const mentionsToInsert = profiles.map(profile => ({
-            message_id: messageId,
-            mentioned_user_id: profile.user_id,
-            mentioned_by_id: user.id,
-            room_id: roomId
-          }));
-
-          console.log('Inserting mentions:', mentionsToInsert);
-
-          const { error } = await supabase
-            .from('mentions')
-            .insert(mentionsToInsert);
-
-          if (error) {
-            console.error('Error creating mentions (table might not exist):', error);
-          } else {
-            console.log('Mentions created successfully');
-          }
-        } catch (tableError) {
-          console.log('Mentions table does not exist, skipping database insert');
-        }
       }
     } catch (error) {
       console.error('Error creating mentions:', error);
@@ -143,7 +119,7 @@ export const useMentions = () => {
           
           // Check if current user is mentioned
           const currentUserMentioned = mentionedUsernames.some(username => {
-            // Get current user's username
+            // Get current user's username from profile
             const currentUsername = user.email?.split('@')[0] || user.id;
             return username.toLowerCase() === currentUsername.toLowerCase();
           });

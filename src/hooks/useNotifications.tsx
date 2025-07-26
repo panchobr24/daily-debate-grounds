@@ -84,6 +84,7 @@ export const useNotifications = () => {
       return filtered;
     });
     
+    // Update unread count based on remaining notifications
     setUnreadCount(prev => {
       const newCount = Math.max(0, prev - 1);
       console.log('Marked as read, new unread count:', newCount);
