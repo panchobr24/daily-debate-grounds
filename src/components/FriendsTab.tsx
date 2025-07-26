@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, UserPlus, Check, X, MessageCircle } from 'lucide-react';
+import { Search, UserPlus, Check, X, MessageCircle, ArrowLeft } from 'lucide-react';
 import { useFriends } from '@/hooks/useFriends';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { Header } from '@/components/ui/header';
 
 interface UserSearchResult {
   user_id: string;
@@ -24,6 +25,11 @@ export default function FriendsTab() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -74,17 +80,35 @@ export default function FriendsTab() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5" />
-            Friends
-          </CardTitle>
-          <CardDescription>
-            Manage your friends and start private conversations
-          </CardDescription>
-        </CardHeader>
+    <div className="min-h-screen bg-background">
+      <Header />
+      
+      <div className="container mx-auto p-6 max-w-4xl">
+        <div className="flex items-center gap-4 mb-6">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/')}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Friends</h1>
+            <p className="text-muted-foreground">Manage your friends and start private conversations</p>
+          </div>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5" />
+              Friends
+            </CardTitle>
+            <CardDescription>
+              Manage your friends and start private conversations
+            </CardDescription>
+          </CardHeader>
         <CardContent>
           <Tabs defaultValue="friends" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
@@ -247,6 +271,7 @@ export default function FriendsTab() {
           </Tabs>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

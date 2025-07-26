@@ -26,6 +26,11 @@ export default function Profile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Sempre que profile.avatar_url mudar e nenhum arquivo novo for selecionado, atualiza o preview
   useEffect(() => {
     if (!avatarFile) {
