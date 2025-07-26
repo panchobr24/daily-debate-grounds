@@ -26,7 +26,6 @@ export function UserContextMenu({ userId, username, avatarUrl, children }: UserC
   const { sendFriendRequest, friends } = useFriends();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isFriend, setIsFriend] = useState(false);
 
   // Check if user is already a friend
   const checkIfFriend = () => {
@@ -102,6 +101,8 @@ export function UserContextMenu({ userId, username, avatarUrl, children }: UserC
   };
 
   const isAlreadyFriend = checkIfFriend();
+
+  console.log('UserContextMenu rendered:', { userId, username, isAlreadyFriend, user: user?.id });
 
   return (
     <ContextMenu>

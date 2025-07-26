@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Send, ThumbsUp, ThumbsDown, ArrowLeft, Users } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { enUS } from 'date-fns/locale';
+import { UserContextMenu } from '@/components/ui/user-context-menu';
 
 interface DebateRoom {
   id: string;
@@ -336,7 +337,15 @@ export default function Chat() {
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold">{message.profiles?.username || 'User'}</span>
+                        <UserContextMenu 
+                          userId={message.user_id}
+                          username={message.profiles?.username || 'User'}
+                          avatarUrl={message.profiles?.avatar_url}
+                        >
+                          <span className="font-semibold cursor-pointer hover:text-turf-purple transition-colors">
+                            {message.profiles?.username || 'User'}
+                          </span>
+                        </UserContextMenu>
                         <span className="text-xs text-muted-foreground">
                           {formatDistanceToNow(new Date(message.created_at), { 
                             addSuffix: true, 
