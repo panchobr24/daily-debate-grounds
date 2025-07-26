@@ -1,189 +1,148 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowLeft, Send } from 'lucide-react';
+import { ArrowLeft, Send, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { formatDistanceToNow } from 'date-fns';
+import { enUS } from 'date-fns/locale';
+
+interface PrivateChatRoom {
+  id: string;
+  user1_id: string;
+  user2_id: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface PrivateMessage {
   id: string;
   content: string;
-  sender_id: string;
   created_at: string;
+  sender_id: string;
+  room_id: string;
   sender_profile?: {
     username: string;
     avatar_url: string | null;
-  };
+  } | null;
 }
 
-interface ChatRoom {
-  id: string;
-  user1_id: string;
-  user2_id: string;
-  user1_profile?: {
-    username: string;
-    avatar_url: string | null;
-  };
-  user2_profile?: {
-    username: string;
-    avatar_url: string | null;
-  };
+interface FriendProfile {
+  user_id: string;
+  username: string;
+  avatar_url: string | null;
 }
 
 export default function PrivateChat() {
   const { roomId } = useParams<{ roomId: string }>();
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const [room, setRoom] = useState<ChatRoom | null>(null);
+  const [room, setRoom] = useState<PrivateChatRoom | null>(null);
   const [messages, setMessages] = useState<PrivateMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [friendProfile, setFriendProfile] = useState<FriendProfile | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+
+    if (!roomId) {
+      navigate('/friends');
+      return;
+    }
+
+    fetchRoom();
+    fetchMessages();
+    subscribeToMessages();
+  }, [roomId, user, navigate]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const fetchRoom = async () => {
-    if (!roomId || !user) return;
+    const { data, error } = await supabase
+      .from('private_chat_rooms')
+      .select('*')
+      .eq('id', roomId)
+      .single();
 
-    try {
-      const { data, error } = await supabase
-        .from('private_chat_rooms')
-        .select('*')
-        .eq('id', roomId)
-        .single();
-
-      if (error || !data) {
-        toast({
-          title: "Chat room not found",
-          description: "This chat room doesn't exist or you don't have access to it.",
-          variant: "destructive",
-        });
-        navigate('/');
-        return;
-      }
-
-      // Check if user has access to this room
-      if (data.user1_id !== user.id && data.user2_id !== user.id) {
-        toast({
-          title: "Access denied",
-          description: "You don't have access to this chat room.",
-          variant: "destructive",
-        });
-        navigate('/');
-        return;
-      }
-
-      // Get profile data for both users
-      const { data: user1Profile } = await supabase
-        .from('profiles')
-        .select('username, avatar_url')
-        .eq('user_id', data.user1_id)
-        .single();
-
-      const { data: user2Profile } = await supabase
-        .from('profiles')
-        .select('username, avatar_url')
-        .eq('user_id', data.user2_id)
-        .single();
-
-      setRoom({
-        ...data,
-        user1_profile: user1Profile,
-        user2_profile: user2Profile
-      });
-    } catch (error) {
-      console.error('Error fetching room:', error);
+    if (error) {
       toast({
-        title: "Error",
-        description: "Failed to load chat room.",
+        title: "Error loading chat",
+        description: "Could not load the private chat.",
         variant: "destructive",
       });
+      navigate('/friends');
+      return;
     }
+
+    setRoom(data);
+
+    // Get friend's profile
+    const friendId = data.user1_id === user?.id ? data.user2_id : data.user1_id;
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('user_id, username, avatar_url')
+      .eq('user_id', friendId)
+      .single();
+
+    setFriendProfile(profile);
   };
 
   const fetchMessages = async () => {
-    if (!roomId) return;
+    setLoading(true);
+    
+    const { data: messagesData, error: messagesError } = await supabase
+      .from('private_messages')
+      .select('*')
+      .eq('room_id', roomId)
+      .order('created_at', { ascending: true });
 
-    try {
-      const { data, error } = await supabase
-        .from('private_messages')
-        .select('*')
-        .eq('room_id', roomId)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      
-      if (data) {
-        // Get profile data for each sender
-        const messagesWithProfiles = await Promise.all(
-          data.map(async (message) => {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('username, avatar_url')
-              .eq('user_id', message.sender_id)
-              .single();
-            
-            return {
-              ...message,
-              sender_profile: profile
-            };
-          })
-        );
-        setMessages(messagesWithProfiles);
-      }
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !user || !roomId || sending) return;
-
-    setSending(true);
-    try {
-      const { error } = await supabase
-        .from('private_messages')
-        .insert({
-          room_id: roomId,
-          sender_id: user.id,
-          content: newMessage.trim()
-        });
-
-      if (error) throw error;
-      setNewMessage('');
-    } catch (error: any) {
+    if (messagesError) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to send message",
+        title: "Error loading messages",
+        description: messagesError.message,
         variant: "destructive",
       });
-    } finally {
-      setSending(false);
+      setLoading(false);
+      return;
     }
+
+    // Fetch profiles for all senders
+    const senderIds = [...new Set(messagesData?.map(m => m.sender_id) || [])];
+    const { data: profilesData } = await supabase
+      .from('profiles')
+      .select('user_id, username, avatar_url')
+      .in('user_id', senderIds);
+
+    // Combine data
+    const messagesWithProfiles = messagesData?.map(message => ({
+      ...message,
+      sender_profile: profilesData?.find(p => p.user_id === message.sender_id) || null
+    })) || [];
+
+    setMessages(messagesWithProfiles);
+    setLoading(false);
   };
 
-  useEffect(() => {
-    fetchRoom();
-    fetchMessages();
-  }, [roomId, user]);
-
-  useEffect(() => {
-    if (!roomId) return;
-
-    // Subscribe to new messages
+  const subscribeToMessages = () => {
     const channel = supabase
-      .channel('private-messages')
+      .channel('private_messages')
       .on(
         'postgres_changes',
         {
@@ -192,20 +151,8 @@ export default function PrivateChat() {
           table: 'private_messages',
           filter: `room_id=eq.${roomId}`
         },
-        async (payload) => {
-          // Fetch the message with profile data
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('username, avatar_url')
-            .eq('user_id', payload.new.sender_id)
-            .single();
-
-          const messageWithProfile = {
-            ...payload.new,
-            sender_profile: profile
-          };
-
-          setMessages(prev => [...prev, messageWithProfile as PrivateMessage]);
+        (payload) => {
+          fetchMessages(); // Refetch to get profile data
         }
       )
       .subscribe();
@@ -213,122 +160,139 @@ export default function PrivateChat() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [roomId]);
+  };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !user) return;
+
+    setSending(true);
+    const { error } = await supabase
+      .from('private_messages')
+      .insert({
+        content: newMessage.trim(),
+        room_id: roomId!,
+        sender_id: user.id
+      });
+
+    if (error) {
+      toast({
+        title: "Error sending message",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      setNewMessage('');
+    }
+    setSending(false);
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-turf-purple via-turf-purple-dark to-background flex items-center justify-center">
-        <div className="text-white">Loading chat...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-turf-purple mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading chat...</p>
+        </div>
       </div>
     );
   }
 
-  if (!room) {
+  if (!room || !friendProfile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-turf-purple via-turf-purple-dark to-background flex items-center justify-center">
-        <div className="text-white">Chat room not found</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg">Chat not found</p>
+          <Button onClick={() => navigate('/friends')} className="mt-4">
+            Back to friends
+          </Button>
+        </div>
       </div>
     );
   }
-
-  const otherUser = room.user1_id === user?.id ? room.user2_profile : room.user1_profile;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-turf-purple via-turf-purple-dark to-background">
-      <div className="container mx-auto p-4 h-screen flex flex-col">
-        <Card className="flex-1 flex flex-col bg-card/95 backdrop-blur-sm border-turf-purple/20">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate('/')}
-                className="text-turf-purple hover:bg-turf-purple/10"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <Avatar>
-                <AvatarImage src={otherUser?.avatar_url || undefined} />
-                <AvatarFallback>
-                  {otherUser?.username?.charAt(0).toUpperCase() || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <CardTitle className="text-turf-purple">
-                Chat with {otherUser?.username}
-              </CardTitle>
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <div className="bg-turf-purple text-white p-4">
+        <div className="container mx-auto flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/friends')}
+            className="text-white hover:bg-white/20"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex items-center gap-3 flex-1">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={friendProfile.avatar_url || undefined} />
+              <AvatarFallback>
+                {friendProfile.username?.charAt(0).toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="text-xl font-bold">{friendProfile.username}</h1>
+              <p className="text-turf-purple-light">Private chat</p>
             </div>
-          </CardHeader>
+          </div>
+        </div>
+      </div>
 
-          <CardContent className="flex-1 flex flex-col p-0">
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex gap-3 ${
-                    message.sender_id === user?.id ? 'justify-end' : 'justify-start'
-                  }`}
-                >
-                  {message.sender_id !== user?.id && (
+      {/* Messages */}
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full overflow-y-auto p-4">
+          <div className="container mx-auto max-w-4xl space-y-4">
+            {messages.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Start your conversation with {friendProfile.username}!</p>
+              </div>
+            ) : (
+              messages.map((message) => (
+                <Card key={message.id} className={`p-4 ${message.sender_id === user?.id ? 'ml-auto max-w-md' : 'mr-auto max-w-md'}`}>
+                  <div className={`flex gap-3 ${message.sender_id === user?.id ? 'flex-row-reverse' : ''}`}>
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={message.sender_profile?.avatar_url || undefined} />
                       <AvatarFallback>
                         {message.sender_profile?.username?.charAt(0).toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
-                  )}
-                  <div
-                    className={`max-w-[70%] p-3 rounded-lg ${
-                      message.sender_id === user?.id
-                        ? 'bg-turf-purple text-white rounded-br-none'
-                        : 'bg-muted rounded-bl-none'
-                    }`}
-                  >
-                    <p className="text-sm">{message.content}</p>
-                    <p className={`text-xs mt-1 ${
-                      message.sender_id === user?.id 
-                        ? 'text-white/70' 
-                        : 'text-muted-foreground'
-                    }`}>
-                      {new Date(message.created_at).toLocaleTimeString()}
-                    </p>
+                    <div className={`flex-1 ${message.sender_id === user?.id ? 'text-right' : ''}`}>
+                      <div className={`flex items-center gap-2 mb-1 ${message.sender_id === user?.id ? 'justify-end' : ''}`}>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(message.created_at), { 
+                            addSuffix: true, 
+                            locale: enUS 
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-foreground">{message.content}</p>
+                    </div>
                   </div>
-                  {message.sender_id === user?.id && (
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={message.sender_profile?.avatar_url || undefined} />
-                      <AvatarFallback>
-                        {message.sender_profile?.username?.charAt(0).toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
+                </Card>
+              ))
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
+      </div>
 
-            <div className="p-4 border-t">
-              <form onSubmit={sendMessage} className="flex gap-2">
-                <Input
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type your message..."
-                  disabled={sending}
-                  className="flex-1"
-                />
-                <Button 
-                  type="submit" 
-                  disabled={sending || !newMessage.trim()}
-                  className="bg-turf-purple hover:bg-turf-purple/90"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </form>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Message Input */}
+      <div className="bg-card border-t p-4">
+        <div className="container mx-auto max-w-4xl">
+          <form onSubmit={sendMessage} className="flex gap-2">
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Type your message..."
+              className="flex-1"
+              disabled={sending}
+            />
+            <Button type="submit" disabled={sending || !newMessage.trim()}>
+              <Send className="h-4 w-4" />
+            </Button>
+          </form>
+        </div>
       </div>
     </div>
   );
