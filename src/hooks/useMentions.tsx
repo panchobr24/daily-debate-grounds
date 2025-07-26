@@ -31,45 +31,53 @@ export const useMentions = () => {
 
     setLoading(true);
     try {
-      const { data: mentionsData } = await supabase
-        .from('mentions')
-        .select('*')
-        .eq('mentioned_user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      console.log('Fetching mentions for user:', user.id);
+              const { data: mentionsData, error: mentionsError } = await supabase
+          .from('mentions')
+          .select('*')
+          .eq('mentioned_user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(50);
 
-      if (mentionsData) {
-        // Get profiles for mentioned_by users
-        const mentionedByIds = [...new Set(mentionsData.map(m => m.mentioned_by_id))];
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('user_id, username, avatar_url')
-          .in('user_id', mentionedByIds);
+        if (mentionsError) {
+          console.error('Error fetching mentions:', mentionsError);
+          return;
+        }
 
-        // Get message contents
-        const messageIds = [...new Set(mentionsData.map(m => m.message_id))];
-        const { data: messages } = await supabase
-          .from('messages')
-          .select('id, content')
-          .in('id', messageIds);
+              console.log('Found mentions:', mentionsData);
+        
+        if (mentionsData) {
+          // Get profiles for mentioned_by users
+          const mentionedByIds = [...new Set(mentionsData.map(m => m.mentioned_by_id))];
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('user_id, username, avatar_url')
+            .in('user_id', mentionedByIds);
 
-        // Get room titles
-        const roomIds = [...new Set(mentionsData.map(m => m.room_id))];
-        const { data: rooms } = await supabase
-          .from('debate_rooms')
-          .select('id, title')
-          .in('id', roomIds);
+          // Get message contents
+          const messageIds = [...new Set(mentionsData.map(m => m.message_id))];
+          const { data: messages } = await supabase
+            .from('messages')
+            .select('id, content')
+            .in('id', messageIds);
 
-        const mentionsWithDetails = mentionsData.map(mention => ({
-          ...mention,
-          mentioned_by_profile: profiles?.find(p => p.user_id === mention.mentioned_by_id) || null,
-          message_content: messages?.find(m => m.id === mention.message_id)?.content || '',
-          room_title: rooms?.find(r => r.id === mention.room_id)?.title || ''
-        }));
+          // Get room titles
+          const roomIds = [...new Set(mentionsData.map(m => m.room_id))];
+          const { data: rooms } = await supabase
+            .from('debate_rooms')
+            .select('id, title')
+            .in('id', roomIds);
 
-        setMentions(mentionsWithDetails);
-        setUnreadMentions(mentionsWithDetails.filter(m => !m.is_read).length);
-      }
+          const mentionsWithDetails = mentionsData.map(mention => ({
+            ...mention,
+            mentioned_by_profile: profiles?.find(p => p.user_id === mention.mentioned_by_id) || null,
+            message_content: messages?.find(m => m.id === mention.message_id)?.content || '',
+            room_title: rooms?.find(r => r.id === mention.room_id)?.title || ''
+          }));
+
+          setMentions(mentionsWithDetails);
+          setUnreadMentions(mentionsWithDetails.length); // Assume all are unread for now
+        }
     } catch (error) {
       console.error('Error fetching mentions:', error);
     } finally {

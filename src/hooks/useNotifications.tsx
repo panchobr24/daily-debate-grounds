@@ -28,16 +28,22 @@ export const useNotifications = () => {
     
     setLoading(true);
     try {
+      console.log('Fetching notifications for user:', user.id);
+      
       // Get private messages where user is the receiver (not sender)
       const { data: messages, error } = await supabase
         .from('private_messages')
         .select('*')
         .neq('sender_id', user.id)
-        .is('is_read', false)
         .order('created_at', { ascending: false })
         .limit(10);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching notifications:', error);
+        throw error;
+      }
+      
+      console.log('Found messages:', messages);
 
       if (messages) {
         // Get profiles for all senders
@@ -54,11 +60,11 @@ export const useNotifications = () => {
           content: message.content,
           created_at: message.created_at,
           sender_profile: profiles?.find(p => p.user_id === message.sender_id) || null,
-          is_read: message.is_read || false
+          is_read: false // Assume all messages are unread for now
         }));
 
         setNotifications(notificationsWithProfiles);
-        setUnreadCount(notificationsWithProfiles.filter(n => !n.is_read).length);
+        setUnreadCount(notificationsWithProfiles.length);
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
