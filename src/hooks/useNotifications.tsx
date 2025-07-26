@@ -60,7 +60,7 @@ export const useNotifications = () => {
           content: message.content,
           created_at: message.created_at,
           sender_profile: profiles?.find(p => p.user_id === message.sender_id) || null,
-          is_read: false // Assume all messages are unread for now
+          is_read: false
         }));
 
         setNotifications(notificationsWithProfiles);
@@ -81,13 +81,17 @@ export const useNotifications = () => {
     setNotifications(prev => {
       const filtered = prev.filter(notification => notification.id !== notificationId);
       console.log('Removed notification, remaining count:', filtered.length);
-      
-      // Update unread count immediately
-      setUnreadCount(filtered.length);
-      console.log('Updated unread count to:', filtered.length);
-      
       return filtered;
     });
+    
+    // Force update unread count
+    setTimeout(() => {
+      setUnreadCount(prev => {
+        const newCount = Math.max(0, prev - 1);
+        console.log('Forced unread count update to:', newCount);
+        return newCount;
+      });
+    }, 0);
   };
 
   const markAllAsRead = async () => {
@@ -165,4 +169,4 @@ export const useNotifications = () => {
     markAsRead,
     markAllAsRead
   };
-}; 
+};
