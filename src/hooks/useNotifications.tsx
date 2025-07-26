@@ -28,11 +28,15 @@ export const useNotifications = () => {
     
     setLoading(true);
     try {
-      // Get private messages where user is the receiver
+      // Get private messages where user is the receiver (not sender)
       const { data: messages, error } = await supabase
         .from('private_messages')
-        .select('*')
+        .select(`
+          *,
+          private_chat_rooms!inner(user1_id, user2_id)
+        `)
         .neq('sender_id', user.id)
+        .or(`private_chat_rooms.user1_id.eq.${user.id},private_chat_rooms.user2_id.eq.${user.id}`)
         .is('is_read', false)
         .order('created_at', { ascending: false })
         .limit(10);
@@ -58,7 +62,7 @@ export const useNotifications = () => {
         }));
 
         setNotifications(notificationsWithProfiles);
-        setUnreadCount(notificationsWithProfiles.length);
+        setUnreadCount(notificationsWithProfiles.filter(n => !n.is_read).length);
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);

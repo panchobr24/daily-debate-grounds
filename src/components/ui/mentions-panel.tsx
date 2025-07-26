@@ -24,9 +24,7 @@ export function MentionsPanel() {
     setIsOpen(false);
   };
 
-  if (mentions.length === 0) {
-    return null;
-  }
+  // Always show the mentions bell, but only show badge when there are unread mentions
 
   return (
     <div className="relative">

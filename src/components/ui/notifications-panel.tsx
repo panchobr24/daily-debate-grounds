@@ -20,9 +20,7 @@ export function NotificationsPanel() {
     setIsOpen(false);
   };
 
-  if (notifications.length === 0) {
-    return null;
-  }
+  // Always show the bell, but only show badge when there are unread notifications
 
   return (
     <div className="relative">
