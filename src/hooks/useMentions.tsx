@@ -26,21 +26,73 @@ export const useMentions = () => {
   const [unreadMentions, setUnreadMentions] = useState(0);
   const [loading, setLoading] = useState(false);
 
-    const fetchMentions = async () => {
+  const fetchMentions = async () => {
     if (!user) return;
 
     setLoading(true);
     try {
       console.log('Fetching mentions for user:', user.id);
       
-      // Since mentions table doesn't exist, we'll use a different approach
-      // For now, just set empty mentions
-      setMentions([]);
-      setUnreadMentions(0);
-      console.log('Mentions table does not exist, using empty state');
-      
+      // Get user's profile to find their username
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile?.username) {
+        console.log('User profile not found');
+        setMentions([]);
+        setUnreadMentions(0);
+        return;
+      }
+
+      // Find recent messages that mention this user
+      const { data: messages, error } = await supabase
+        .from('messages')
+        .select(`
+          id,
+          content,
+          user_id,
+          room_id,
+          created_at,
+          profiles:user_id (username, avatar_url),
+          debate_rooms:room_id (title)
+        `)
+        .neq('user_id', user.id) // Don't include user's own messages
+        .ilike('content', `%@${profile.username}%`)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) {
+        console.error('Error fetching mentions:', error);
+        setMentions([]);
+        setUnreadMentions(0);
+        return;
+      }
+
+      if (messages) {
+        const mentionsData = messages.map(msg => ({
+          id: `mention_${msg.id}`,
+          message_id: msg.id,
+          mentioned_user_id: user.id,
+          mentioned_by_id: msg.user_id,
+          room_id: msg.room_id,
+          is_read: false, // For now, treat all as unread
+          created_at: msg.created_at,
+          mentioned_by_profile: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles,
+          message_content: msg.content,
+          room_title: Array.isArray(msg.debate_rooms) ? msg.debate_rooms[0]?.title : msg.debate_rooms?.title
+        }));
+
+        setMentions(mentionsData);
+        setUnreadMentions(mentionsData.length);
+        console.log('Found mentions:', mentionsData.length);
+      }
     } catch (error) {
       console.error('Error fetching mentions:', error);
+      setMentions([]);
+      setUnreadMentions(0);
     } finally {
       setLoading(false);
     }
@@ -118,11 +170,20 @@ export const useMentions = () => {
           const mentionedUsernames = extractMentions(messageContent);
           
           // Check if current user is mentioned
-          const currentUserMentioned = mentionedUsernames.some(username => {
+          const currentUserMentioned = await (async () => {
             // Get current user's username from profile
-            const currentUsername = user.email?.split('@')[0] || user.id;
-            return username.toLowerCase() === currentUsername.toLowerCase();
-          });
+            const { data: currentProfile } = await supabase
+              .from('profiles')
+              .select('username')
+              .eq('user_id', user.id)
+              .single();
+
+            if (!currentProfile?.username) return false;
+
+            return mentionedUsernames.some(username => 
+              username.toLowerCase() === currentProfile.username.toLowerCase()
+            );
+          })();
 
           if (currentUserMentioned) {
             // Get the mentioner's profile

@@ -77,21 +77,17 @@ export const useNotifications = () => {
   const markAsRead = async (notificationId: string) => {
     console.log('Marking notification as read:', notificationId);
     
-    // Remove the notification from the list entirely and update count
+    // Update both notifications and unread count in sync
     setNotifications(prev => {
       const filtered = prev.filter(notification => notification.id !== notificationId);
       console.log('Removed notification, remaining count:', filtered.length);
+      
+      // Update unread count immediately in the same state update
+      setUnreadCount(filtered.length);
+      console.log('Updated unread count to:', filtered.length);
+      
       return filtered;
     });
-    
-    // Force update unread count
-    setTimeout(() => {
-      setUnreadCount(prev => {
-        const newCount = Math.max(0, prev - 1);
-        console.log('Forced unread count update to:', newCount);
-        return newCount;
-      });
-    }, 0);
   };
 
   const markAllAsRead = async () => {
