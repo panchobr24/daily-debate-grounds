@@ -64,8 +64,10 @@ export const useNotifications = () => {
         }));
 
         setNotifications(notificationsWithProfiles);
-        setUnreadCount(notificationsWithProfiles.length);
-        console.log('Set unread count to:', notificationsWithProfiles.length);
+        // Only count actual new notifications, not all messages
+        const newCount = notificationsWithProfiles.length;
+        setUnreadCount(newCount);
+        console.log('Set unread count to:', newCount);
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -77,12 +79,12 @@ export const useNotifications = () => {
   const markAsRead = async (notificationId: string) => {
     console.log('Marking notification as read:', notificationId);
     
-    // Update both notifications and unread count in sync
+    // Update both notifications and unread count in a single state update
     setNotifications(prev => {
       const filtered = prev.filter(notification => notification.id !== notificationId);
       console.log('Removed notification, remaining count:', filtered.length);
       
-      // Update unread count immediately in the same state update
+      // Update unread count synchronously
       setUnreadCount(filtered.length);
       console.log('Updated unread count to:', filtered.length);
       
@@ -93,7 +95,7 @@ export const useNotifications = () => {
   const markAllAsRead = async () => {
     console.log('Marking all notifications as read');
     
-    // Clear all notifications
+    // Clear all notifications and unread count synchronously
     setNotifications([]);
     setUnreadCount(0);
     console.log('Marked all as read, unread count set to 0');

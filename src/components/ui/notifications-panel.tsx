@@ -17,6 +17,7 @@ export function NotificationsPanel() {
   console.log('NotificationsPanel render - unreadCount:', unreadCount);
 
   const handleNotificationClick = (notification: any) => {
+    console.log('Clicked notification:', notification.id, 'Current unread count:', unreadCount);
     markAsRead(notification.id);
     navigate(`/private-chat/${notification.room_id}`);
     setNotificationsOpen(false);
@@ -72,47 +73,53 @@ export function NotificationsPanel() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="max-h-64 overflow-y-auto">
-              {notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  onClick={() => handleNotificationClick(notification)}
-                  className={`p-3 border-b cursor-pointer hover:bg-muted/50 transition-colors ${
-                    !notification.is_read ? 'bg-muted/30' : ''
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={notification.sender_profile?.avatar_url || undefined} />
-                      <AvatarFallback>
-                        {notification.sender_profile?.username?.charAt(0).toUpperCase() || 'F'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium truncate">
-                          {notification.sender_profile?.username || 'Friend'}
+              {notifications.length === 0 ? (
+                <div className="p-4 text-center text-muted-foreground">
+                  No new notifications
+                </div>
+              ) : (
+                notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    onClick={() => handleNotificationClick(notification)}
+                    className={`p-3 border-b cursor-pointer hover:bg-muted/50 transition-colors ${
+                      !notification.is_read ? 'bg-muted/30' : ''
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={notification.sender_profile?.avatar_url || undefined} />
+                        <AvatarFallback>
+                          {notification.sender_profile?.username?.charAt(0).toUpperCase() || 'F'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium truncate">
+                            {notification.sender_profile?.username || 'Friend'}
+                          </p>
+                          {!notification.is_read && (
+                            <div className="h-2 w-2 bg-blue-500 rounded-full flex-shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {notification.content}
                         </p>
-                        {!notification.is_read && (
-                          <div className="h-2 w-2 bg-blue-500 rounded-full flex-shrink-0" />
-                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formatDistanceToNow(new Date(notification.created_at), { 
+                            addSuffix: true, 
+                            locale: enUS 
+                          })}
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                        {notification.content}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {formatDistanceToNow(new Date(notification.created_at), { 
-                          addSuffix: true, 
-                          locale: enUS 
-                        })}
-                      </p>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
       )}
     </div>
   );
-} 
+}

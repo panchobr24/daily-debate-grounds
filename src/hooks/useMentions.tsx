@@ -47,7 +47,9 @@ export const useMentions = () => {
         return;
       }
 
-      // Find recent messages that mention this user
+      console.log('Looking for mentions of username:', profile.username);
+
+      // Find recent messages that mention this user with correct JOIN syntax
       const { data: messages, error } = await supabase
         .from('messages')
         .select(`
@@ -55,9 +57,7 @@ export const useMentions = () => {
           content,
           user_id,
           room_id,
-          created_at,
-          profiles:user_id (username, avatar_url),
-          debate_rooms:room_id (title)
+          created_at
         `)
         .neq('user_id', user.id) // Don't include user's own messages
         .ilike('content', `%@${profile.username}%`)
@@ -71,8 +71,27 @@ export const useMentions = () => {
         return;
       }
 
+      console.log('Raw messages found:', messages);
+
       if (messages) {
-        const mentionsData = messages.map(msg => ({
+        // Filter messages that actually contain the exact mention
+        const actualMentions = messages.filter(msg => {
+          const regex = new RegExp(`@${profile.username}\\b`, 'i');
+          return regex.test(msg.content);
+        });
+
+        console.log('Actual mentions after filtering:', actualMentions);
+
+        // Get user profiles and room titles separately
+        const userIds = [...new Set(actualMentions.map(msg => msg.user_id))];
+        const roomIds = [...new Set(actualMentions.map(msg => msg.room_id))];
+
+        const [profilesResponse, roomsResponse] = await Promise.all([
+          supabase.from('profiles').select('user_id, username, avatar_url').in('user_id', userIds),
+          supabase.from('debate_rooms').select('id, title').in('id', roomIds)
+        ]);
+
+        const mentionsData = actualMentions.map(msg => ({
           id: `mention_${msg.id}`,
           message_id: msg.id,
           mentioned_user_id: user.id,
@@ -80,14 +99,14 @@ export const useMentions = () => {
           room_id: msg.room_id,
           is_read: false, // For now, treat all as unread
           created_at: msg.created_at,
-          mentioned_by_profile: Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles,
+          mentioned_by_profile: profilesResponse.data?.find(p => p.user_id === msg.user_id),
           message_content: msg.content,
-          room_title: Array.isArray(msg.debate_rooms) ? msg.debate_rooms[0]?.title : msg.debate_rooms?.title
+          room_title: roomsResponse.data?.find(r => r.id === msg.room_id)?.title || 'Unknown Room'
         }));
 
         setMentions(mentionsData);
         setUnreadMentions(mentionsData.length);
-        console.log('Found mentions:', mentionsData.length);
+        console.log('Set mentions:', mentionsData.length);
       }
     } catch (error) {
       console.error('Error fetching mentions:', error);
@@ -99,23 +118,34 @@ export const useMentions = () => {
   };
 
   const markMentionAsRead = async (mentionId: string) => {
-    // For now, just update local state since is_read column doesn't exist
-    setMentions(prev => 
-      prev.map(mention => 
+    console.log('Marking mention as read:', mentionId);
+    
+    // Update both mentions and unread count synchronously  
+    setMentions(prev => {
+      const updated = prev.map(mention => 
         mention.id === mentionId 
           ? { ...mention, is_read: true }
           : mention
-      )
-    );
-    setUnreadMentions(prev => Math.max(0, prev - 1));
+      );
+      
+      // Count unread mentions and update state
+      const unreadCount = updated.filter(m => !m.is_read).length;
+      setUnreadMentions(unreadCount);
+      console.log('Updated unread mentions count to:', unreadCount);
+      
+      return updated;
+    });
   };
 
   const markAllMentionsAsRead = async () => {
-    // For now, just update local state since is_read column doesn't exist
-    setMentions(prev => 
-      prev.map(mention => ({ ...mention, is_read: true }))
-    );
-    setUnreadMentions(0);
+    console.log('Marking all mentions as read');
+    
+    setMentions(prev => {
+      const updated = prev.map(mention => ({ ...mention, is_read: true }));
+      setUnreadMentions(0);
+      console.log('Marked all mentions as read');
+      return updated;
+    });
   };
 
   const createMentions = async (messageId: string, roomId: string, mentionedUsernames: string[]) => {
@@ -180,9 +210,9 @@ export const useMentions = () => {
 
             if (!currentProfile?.username) return false;
 
-            return mentionedUsernames.some(username => 
-              username.toLowerCase() === currentProfile.username.toLowerCase()
-            );
+            // Use exact word boundary matching for mentions
+            const regex = new RegExp(`@${currentProfile.username}\\b`, 'i');
+            return regex.test(messageContent);
           })();
 
           if (currentUserMentioned) {

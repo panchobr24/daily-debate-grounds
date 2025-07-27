@@ -74,46 +74,52 @@ export function MentionsPanel() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="max-h-64 overflow-y-auto">
-              {mentions.map((mention) => (
-                <div
-                  key={mention.id}
-                  onClick={() => handleMentionClick(mention)}
-                  className={`p-3 border-b cursor-pointer hover:bg-muted/50 transition-colors ${
-                    !mention.is_read ? 'bg-muted/30' : ''
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={mention.mentioned_by_profile?.avatar_url || undefined} />
-                      <AvatarFallback>
-                        {mention.mentioned_by_profile?.username?.charAt(0).toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium truncate">
-                          {mention.mentioned_by_profile?.username || 'User'}
+              {mentions.length === 0 ? (
+                <div className="p-4 text-center text-muted-foreground">
+                  No new mentions
+                </div>
+              ) : (
+                mentions.map((mention) => (
+                  <div
+                    key={mention.id}
+                    onClick={() => handleMentionClick(mention)}
+                    className={`p-3 border-b cursor-pointer hover:bg-muted/50 transition-colors ${
+                      !mention.is_read ? 'bg-muted/30' : ''
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={mention.mentioned_by_profile?.avatar_url || undefined} />
+                        <AvatarFallback>
+                          {mention.mentioned_by_profile?.username?.charAt(0).toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium truncate">
+                            {mention.mentioned_by_profile?.username || 'User'}
+                          </p>
+                          {!mention.is_read && (
+                            <div className="h-2 w-2 bg-blue-500 rounded-full flex-shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          mentioned you in "{mention.room_title}"
                         </p>
-                        {!mention.is_read && (
-                          <div className="h-2 w-2 bg-blue-500 rounded-full flex-shrink-0" />
-                        )}
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                          "{mention.message_content}"
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formatDistanceToNow(new Date(mention.created_at), { 
+                            addSuffix: true, 
+                            locale: enUS 
+                          })}
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                        mentioned you in "{mention.room_title}"
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                        "{mention.message_content}"
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {formatDistanceToNow(new Date(mention.created_at), { 
-                          addSuffix: true, 
-                          locale: enUS 
-                        })}
-                      </p>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
