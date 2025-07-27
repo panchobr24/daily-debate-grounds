@@ -26,12 +26,30 @@ export const useMentions = () => {
   const [unreadMentions, setUnreadMentions] = useState(0);
   const [loading, setLoading] = useState(false);
 
+  // Get deleted mention IDs from localStorage
+  const getDeletedMentionIds = (): Set<string> => {
+    if (!user) return new Set();
+    const key = `deleted_mentions_${user.id}`;
+    const deleted = localStorage.getItem(key);
+    return deleted ? new Set(JSON.parse(deleted)) : new Set();
+  };
+
+  // Save deleted mention IDs to localStorage
+  const saveDeletedMentionIds = (deletedIds: Set<string>) => {
+    if (!user) return;
+    const key = `deleted_mentions_${user.id}`;
+    localStorage.setItem(key, JSON.stringify([...deletedIds]));
+  };
+
   const fetchMentions = async () => {
     if (!user) return;
 
     setLoading(true);
     try {
       console.log('Fetching mentions for user:', user.id);
+      
+      // Get deleted mention IDs
+      const deletedIds = getDeletedMentionIds();
       
       // Get user's profile to find their username
       const { data: profile } = await supabase
@@ -62,7 +80,7 @@ export const useMentions = () => {
         .neq('user_id', user.id) // Don't include user's own messages
         .ilike('content', `%@${profile.username}%`)
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(50); // Increased limit
 
       if (error) {
         console.error('Error fetching mentions:', error);
@@ -74,10 +92,12 @@ export const useMentions = () => {
       console.log('Raw messages found:', messages);
 
       if (messages) {
-        // Filter messages that actually contain the exact mention
+        // Filter messages that actually contain the exact mention and are not deleted
         const actualMentions = messages.filter(msg => {
           const regex = new RegExp(`@${profile.username}\\b`, 'i');
-          return regex.test(msg.content);
+          const hasMention = regex.test(msg.content);
+          const isNotDeleted = !deletedIds.has(msg.id);
+          return hasMention && isNotDeleted;
         });
 
         console.log('Actual mentions after filtering:', actualMentions);
@@ -120,6 +140,15 @@ export const useMentions = () => {
   const markMentionAsRead = async (mentionId: string) => {
     console.log('Marking mention as read:', mentionId);
     
+    // Find the mention to get the message_id
+    const mention = mentions.find(m => m.id === mentionId);
+    if (mention) {
+      // Add to deleted mentions in localStorage
+      const deletedIds = getDeletedMentionIds();
+      deletedIds.add(mention.message_id);
+      saveDeletedMentionIds(deletedIds);
+    }
+    
     // Update both mentions and unread count synchronously  
     setMentions(prev => {
       const updated = prev.map(mention => 
@@ -140,12 +169,53 @@ export const useMentions = () => {
   const markAllMentionsAsRead = async () => {
     console.log('Marking all mentions as read');
     
+    // Add all current mention IDs to deleted set
+    const currentMentionIds = mentions.map(mention => mention.message_id);
+    const deletedIds = getDeletedMentionIds();
+    currentMentionIds.forEach(id => deletedIds.add(id));
+    saveDeletedMentionIds(deletedIds);
+    
     setMentions(prev => {
       const updated = prev.map(mention => ({ ...mention, is_read: true }));
       setUnreadMentions(0);
       console.log('Marked all mentions as read');
       return updated;
     });
+  };
+
+  const deleteAllMentions = async () => {
+    console.log('Deleting all mentions');
+    
+    if (!user) return;
+    
+    try {
+      // Get current mention IDs (extract message_id from mention id)
+      const currentMentionIds = mentions.map(mention => mention.message_id);
+      
+      // Add all current mention IDs to deleted set
+      const deletedIds = getDeletedMentionIds();
+      currentMentionIds.forEach(id => deletedIds.add(id));
+      
+      // Save to localStorage
+      saveDeletedMentionIds(deletedIds);
+      
+      // Clear all mentions and unread count synchronously
+      setMentions([]);
+      setUnreadMentions(0);
+      console.log('Deleted all mentions, unread count set to 0');
+      
+      toast({
+        title: "Success",
+        description: "All mentions deleted",
+      });
+    } catch (error) {
+      console.error('Error deleting mentions:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete mentions",
+        variant: "destructive",
+      });
+    }
   };
 
   const createMentions = async (messageId: string, roomId: string, mentionedUsernames: string[]) => {
@@ -287,6 +357,7 @@ export const useMentions = () => {
     fetchMentions,
     markMentionAsRead,
     markAllMentionsAsRead,
+    deleteAllMentions,
     createMentions
   };
 }; 

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Bell, Check, X, AtSign } from 'lucide-react';
+import { Bell, Trash2, AtSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,7 @@ import { enUS } from 'date-fns/locale';
 
 export function MentionsPanel() {
   const { mentionsOpen, setMentionsOpen } = usePanelState();
-  const { mentions, unreadMentions, markMentionAsRead, markAllMentionsAsRead } = useMentions();
+  const { mentions, unreadMentions, markMentionAsRead, deleteAllMentions } = useMentions();
   const navigate = useNavigate();
 
   const handleMentionClick = async (mention: any) => {
@@ -21,6 +21,11 @@ export function MentionsPanel() {
     }
     
     navigate(`/chat/${mention.room_id}`);
+    setMentionsOpen(false);
+  };
+
+  const handleDeleteAll = async () => {
+    await deleteAllMentions();
     setMentionsOpen(false);
   };
 
@@ -56,18 +61,11 @@ export function MentionsPanel() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={markAllMentionsAsRead}
-                  className="h-6 w-6 p-0"
+                  onClick={handleDeleteAll}
+                  className="h-6 w-6 p-0 hover:text-destructive"
+                  title="Delete all mentions"
                 >
-                  <Check className="h-3 w-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setMentionsOpen(false)}
-                  className="h-6 w-6 p-0"
-                >
-                  <X className="h-3 w-3" />
+                  <Trash2 className="h-3 w-3" />
                 </Button>
               </div>
             </div>

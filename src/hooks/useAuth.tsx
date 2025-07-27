@@ -74,6 +74,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
+    // Clear localStorage for deleted notifications and mentions
+    if (user) {
+      localStorage.removeItem(`deleted_notifications_${user.id}`);
+      localStorage.removeItem(`deleted_mentions_${user.id}`);
+    }
     await supabase.auth.signOut();
   };
 

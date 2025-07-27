@@ -23,6 +23,21 @@ export const useNotifications = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
+  // Get deleted notification IDs from localStorage
+  const getDeletedNotificationIds = (): Set<string> => {
+    if (!user) return new Set();
+    const key = `deleted_notifications_${user.id}`;
+    const deleted = localStorage.getItem(key);
+    return deleted ? new Set(JSON.parse(deleted)) : new Set();
+  };
+
+  // Save deleted notification IDs to localStorage
+  const saveDeletedNotificationIds = (deletedIds: Set<string>) => {
+    if (!user) return;
+    const key = `deleted_notifications_${user.id}`;
+    localStorage.setItem(key, JSON.stringify([...deletedIds]));
+  };
+
   const fetchNotifications = async () => {
     if (!user) return;
     
@@ -30,13 +45,16 @@ export const useNotifications = () => {
     try {
       console.log('Fetching notifications for user:', user.id);
       
+      // Get deleted notification IDs
+      const deletedIds = getDeletedNotificationIds();
+      
       // Get private messages where user is the receiver (not sender)
       const { data: messages, error } = await supabase
         .from('private_messages')
         .select('*')
         .neq('sender_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(50); // Increased limit to get more messages
 
       if (error) {
         console.error('Error fetching notifications:', error);
@@ -46,14 +64,17 @@ export const useNotifications = () => {
       console.log('Found messages:', messages);
 
       if (messages) {
+        // Filter out deleted notifications
+        const filteredMessages = messages.filter(message => !deletedIds.has(message.id));
+        
         // Get profiles for all senders
-        const senderIds = [...new Set(messages.map(m => m.sender_id))];
+        const senderIds = [...new Set(filteredMessages.map(m => m.sender_id))];
         const { data: profiles } = await supabase
           .from('profiles')
           .select('user_id, username, avatar_url')
           .in('user_id', senderIds);
 
-        const notificationsWithProfiles = messages.map(message => ({
+        const notificationsWithProfiles = filteredMessages.map(message => ({
           id: message.id,
           room_id: message.room_id,
           sender_id: message.sender_id,
@@ -79,6 +100,11 @@ export const useNotifications = () => {
   const markAsRead = async (notificationId: string) => {
     console.log('Marking notification as read:', notificationId);
     
+    // Add to deleted notifications in localStorage
+    const deletedIds = getDeletedNotificationIds();
+    deletedIds.add(notificationId);
+    saveDeletedNotificationIds(deletedIds);
+    
     // Update both notifications and unread count in a single state update
     setNotifications(prev => {
       const filtered = prev.filter(notification => notification.id !== notificationId);
@@ -95,10 +121,51 @@ export const useNotifications = () => {
   const markAllAsRead = async () => {
     console.log('Marking all notifications as read');
     
+    // Add all current notification IDs to deleted set
+    const currentNotificationIds = notifications.map(n => n.id);
+    const deletedIds = getDeletedNotificationIds();
+    currentNotificationIds.forEach(id => deletedIds.add(id));
+    saveDeletedNotificationIds(deletedIds);
+    
     // Clear all notifications and unread count synchronously
     setNotifications([]);
     setUnreadCount(0);
     console.log('Marked all as read, unread count set to 0');
+  };
+
+  const deleteAllNotifications = async () => {
+    console.log('Deleting all notifications');
+    
+    if (!user) return;
+    
+    try {
+      // Get current notification IDs
+      const currentNotificationIds = notifications.map(n => n.id);
+      
+      // Add all current notification IDs to deleted set
+      const deletedIds = getDeletedNotificationIds();
+      currentNotificationIds.forEach(id => deletedIds.add(id));
+      
+      // Save to localStorage
+      saveDeletedNotificationIds(deletedIds);
+      
+      // Clear all notifications and unread count synchronously
+      setNotifications([]);
+      setUnreadCount(0);
+      console.log('Deleted all notifications, unread count set to 0');
+      
+      toast({
+        title: "Success",
+        description: "All notifications deleted",
+      });
+    } catch (error) {
+      console.error('Error deleting notifications:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete notifications",
+        variant: "destructive",
+      });
+    }
   };
 
   const subscribeToNewMessages = () => {
@@ -165,6 +232,7 @@ export const useNotifications = () => {
     loading,
     fetchNotifications,
     markAsRead,
-    markAllAsRead
+    markAllAsRead,
+    deleteAllNotifications
   };
 };

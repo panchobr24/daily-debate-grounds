@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Bell, X, Check } from 'lucide-react';
+import { Bell, Trash2 } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { usePanelState } from '@/hooks/usePanelState';
 import { useNavigate } from 'react-router-dom';
@@ -10,7 +10,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 
 export function NotificationsPanel() {
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, markAsRead, deleteAllNotifications } = useNotifications();
   const { notificationsOpen, setNotificationsOpen } = usePanelState();
   const navigate = useNavigate();
   
@@ -20,6 +20,11 @@ export function NotificationsPanel() {
     console.log('Clicked notification:', notification.id, 'Current unread count:', unreadCount);
     markAsRead(notification.id);
     navigate(`/private-chat/${notification.room_id}`);
+    setNotificationsOpen(false);
+  };
+
+  const handleDeleteAll = async () => {
+    await deleteAllNotifications();
     setNotificationsOpen(false);
   };
 
@@ -55,18 +60,11 @@ export function NotificationsPanel() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={markAllAsRead}
-                  className="h-6 w-6 p-0"
+                  onClick={handleDeleteAll}
+                  className="h-6 w-6 p-0 hover:text-destructive"
+                  title="Delete all notifications"
                 >
-                  <Check className="h-3 w-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setNotificationsOpen(false)}
-                  className="h-6 w-6 p-0"
-                >
-                  <X className="h-3 w-3" />
+                  <Trash2 className="h-3 w-3" />
                 </Button>
               </div>
             </div>
