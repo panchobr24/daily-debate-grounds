@@ -15,64 +15,63 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY')!
     
-    if (!openaiApiKey) {
-      throw new Error('OPENAI_API_KEY is not configured')
+    if (!geminiApiKey) {
+      throw new Error('GEMINI_API_KEY is not configured')
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     console.log('Starting AI-powered debate topic generation...')
 
-    // Generate 6 diverse topics using OpenAI
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Generate 6 diverse topics using Gemini AI
+    const prompt = `You are a debate topic generator. Generate exactly 6 diverse, engaging debate topics for today (${new Date().toLocaleDateString()}). Each topic should be:
+    - Relevant to current times and trending issues
+    - Thought-provoking and balanced (allowing for multiple viewpoints)
+    - Accessible to a general audience
+    - Cover different domains (technology, society, environment, ethics, economics, politics, culture)
+    
+    Return ONLY a JSON array with exactly 6 objects, each containing:
+    - title: A catchy, short title (max 25 characters)
+    - topic: The debate question (clear, specific question)
+    - description: Brief explanation of the debate context (1-2 sentences)
+    
+    Example format:
+    [
+      {
+        "title": "AI in Healthcare",
+        "topic": "Should AI diagnosis replace human doctors in routine medical care?",
+        "description": "The growing capability of AI to diagnose diseases faster and more accurately than humans."
+      }
+    ]
+    
+    Generate 6 fresh, diverse debate topics now:`
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a debate topic generator. Generate exactly 6 diverse, engaging debate topics for today. Each topic should be:
-            - Relevant to current times and trending issues
-            - Thought-provoking and balanced (allowing for multiple viewpoints)
-            - Accessible to a general audience
-            - Cover different domains (technology, society, environment, ethics, economics, politics, culture)
-            
-            Return ONLY a JSON array with exactly 6 objects, each containing:
-            - title: A catchy, short title (max 25 characters)
-            - topic: The debate question (clear, specific question)
-            - description: Brief explanation of the debate context (1-2 sentences)
-            
-            Example format:
-            [
-              {
-                "title": "AI in Healthcare",
-                "topic": "Should AI diagnosis replace human doctors in routine medical care?",
-                "description": "The growing capability of AI to diagnose diseases faster and more accurately than humans."
-              }
-            ]`
-          },
-          {
-            role: 'user',
-            content: `Generate 6 fresh, diverse debate topics for ${new Date().toLocaleDateString()}. Make them engaging and current.`
-          }
-        ],
-        temperature: 0.8,
-        max_tokens: 1500
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.8,
+          maxOutputTokens: 2048,
+        }
       }),
     })
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`)
+      throw new Error(`Gemini API error: ${response.status}`)
     }
 
     const data = await response.json()
-    const generatedContent = data.choices[0].message.content
+    const generatedContent = data.candidates[0].content.parts[0].text
 
     console.log('Raw AI response:', generatedContent)
 
