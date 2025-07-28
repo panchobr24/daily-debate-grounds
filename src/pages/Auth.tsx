@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Upload } from 'lucide-react';
+import { GoogleOAuthTest } from '@/components/ui/google-oauth-test';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
@@ -18,6 +19,7 @@ export default function Auth() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
   const { signUp, signIn, signInWithGoogle, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -141,15 +143,36 @@ export default function Auth() {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
+      console.log('Starting Google sign in process...');
       const { error } = await signInWithGoogle();
+      
       if (error) {
+        console.error('Google sign in error:', error);
+        
+        let errorMessage = error.message;
+        
+        // Provide more specific error messages
+        if (error.message.includes('provider is not enabled')) {
+          errorMessage = 'Google OAuth is not configured. Please contact the administrator.';
+        } else if (error.message.includes('Invalid redirect URI')) {
+          errorMessage = 'Invalid redirect configuration. Please try again.';
+        } else if (error.message.includes('popup_closed')) {
+          errorMessage = 'Sign in was cancelled. Please try again.';
+        }
+        
         toast({
           title: "Google sign in error",
-          description: error.message,
+          description: errorMessage,
           variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Redirecting to Google...",
+          description: "Please complete the sign in process.",
         });
       }
     } catch (error) {
+      console.error('Unexpected error during Google sign in:', error);
       toast({
         title: "Unexpected error",
         description: "Please try again in a few moments.",
@@ -223,6 +246,26 @@ export default function Auth() {
               >
                 Continue with Google
               </Button>
+              
+              {/* Debug section - only show in development */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-4 pt-4 border-t">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowDebug(!showDebug)}
+                    className="w-full text-xs"
+                  >
+                    {showDebug ? "Hide Debug" : "Show Debug"}
+                  </Button>
+                  {showDebug && (
+                    <div className="mt-2">
+                      <GoogleOAuthTest />
+                    </div>
+                  )}
+                </div>
+              )}
             </TabsContent>
             
             <TabsContent value="signup" className="space-y-4">
@@ -301,6 +344,26 @@ export default function Auth() {
               >
                 Continue with Google
               </Button>
+              
+              {/* Debug section - only show in development */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-4 pt-4 border-t">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowDebug(!showDebug)}
+                    className="w-full text-xs"
+                  >
+                    {showDebug ? "Hide Debug" : "Show Debug"}
+                  </Button>
+                  {showDebug && (
+                    <div className="mt-2">
+                      <GoogleOAuthTest />
+                    </div>
+                  )}
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>
