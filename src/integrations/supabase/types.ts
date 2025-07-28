@@ -124,51 +124,6 @@ export type Database = {
           },
         ]
       }
-      mentions: {
-        Row: {
-          created_at: string
-          id: string
-          is_read: boolean
-          mentioned_by_id: string
-          mentioned_user_id: string
-          message_id: string
-          room_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_read?: boolean
-          mentioned_by_id: string
-          mentioned_user_id: string
-          message_id: string
-          room_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_read?: boolean
-          mentioned_by_id?: string
-          mentioned_user_id?: string
-          message_id?: string
-          room_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "mentions_message_id_fkey"
-            columns: ["message_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "mentions_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "debate_rooms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       messages: {
         Row: {
           content: string
@@ -233,7 +188,6 @@ export type Database = {
           content: string
           created_at: string
           id: string
-          is_read: boolean
           room_id: string
           sender_id: string
           updated_at: string
@@ -242,7 +196,6 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
-          is_read?: boolean
           room_id: string
           sender_id: string
           updated_at?: string
@@ -251,7 +204,6 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
-          is_read?: boolean
           room_id?: string
           sender_id?: string
           updated_at?: string
