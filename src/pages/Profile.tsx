@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertTriangle, Trash2 } from "lucide-react";
 
 export default function Profile() {
   const { profile } = useProfile();
@@ -23,6 +25,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
@@ -109,16 +112,23 @@ export default function Profile() {
   };
 
   const handleDeleteProfile = async () => {
-    if (!window.confirm("Are you sure you want to delete your profile? This action cannot be undone.")) return;
+    setShowDeleteConfirm(false);
     setLoading(true);
     setError("");
-    // Remove from profiles table
-    await supabase.from('profiles').delete().eq('user_id', user?.id);
-    // Remove user from auth
-    await supabase.auth.admin.deleteUser(user?.id!);
-    setLoading(false);
-    signOut();
-    navigate("/");
+    
+    try {
+      // Remove from profiles table
+      await supabase.from('profiles').delete().eq('user_id', user?.id);
+      // Remove user from auth
+      await supabase.auth.admin.deleteUser(user?.id!);
+      setLoading(false);
+      signOut();
+      navigate("/");
+    } catch (error) {
+      setLoading(false);
+      setError("Erro ao deletar perfil. Tente novamente.");
+      console.error("Error deleting profile:", error);
+    }
   };
 
   return (
@@ -132,7 +142,10 @@ export default function Profile() {
             </AvatarFallback>
           </Avatar>
           <CardTitle className="text-3xl font-bold text-turf-purple">{profile.username}</CardTitle>
-          <CardDescription className="text-center">ID: <Badge variant="secondary">{profile.user_id}</Badge></CardDescription>
+          <div className="text-center">
+            <CardDescription>ID:</CardDescription>
+            <Badge variant="secondary" className="mt-1">{profile.user_id}</Badge>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           {success && (
@@ -196,14 +209,77 @@ export default function Profile() {
             </Button>
           </form>
           <Separator className="my-6" />
-          <Button variant="destructive" className="w-full" onClick={handleDeleteProfile} disabled={loading}>
-            Delete profile
+          <Button 
+            variant="destructive" 
+            className="w-full flex items-center gap-2" 
+            onClick={() => setShowDeleteConfirm(true)} 
+            disabled={loading}
+          >
+            <Trash2 className="h-4 w-4" />
+            Deletar Perfil
           </Button>
         </CardContent>
         <CardFooter className="flex flex-col gap-2">
           <Button variant="outline" className="w-full" onClick={() => navigate("/")}>Back to home</Button>
         </CardFooter>
       </Card>
+      
+      {/* Modal de Confirmação de Deletar Perfil */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              <DialogTitle>Confirmar Exclusão do Perfil</DialogTitle>
+            </div>
+            <DialogDescription className="text-left space-y-3">
+              <p className="font-medium text-foreground">
+                Você está prestes a deletar permanentemente sua conta.
+              </p>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>⚠️ <strong>Esta ação não pode ser desfeita.</strong></p>
+                <p>Serão removidos permanentemente:</p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>Seu perfil e dados pessoais</li>
+                  <li>Todas as suas mensagens e debates</li>
+                  <li>Seu histórico de atividades</li>
+                  <li>Suas configurações e preferências</li>
+                </ul>
+                <p className="mt-3 text-foreground">
+                  <strong>Nome de usuário:</strong> {profile.username}
+                </p>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 sm:justify-between">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={loading}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteProfile}
+              disabled={loading}
+              className="flex items-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Deletando...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4" />
+                  Sim, Deletar Perfil
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 
