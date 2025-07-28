@@ -13,6 +13,9 @@ interface AuthContextType {
   resendVerificationEmail: (email: string) => Promise<{ error: any }>;
   checkEmailVerification: () => Promise<{ error: any; user?: any }>;
   checkEmailAvailability: (email: string) => Promise<{ available: boolean; error?: any }>;
+  checkUsernameAvailability: (username: string) => Promise<{ available: boolean; error?: any }>;
+  verifyOtpCode: (email: string, code: string) => Promise<{ success: boolean; error?: any }>;
+  resendOtpCode: (email: string) => Promise<{ success: boolean; error?: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -48,13 +51,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     console.log('useAuth signUp called with:', { email, username });
     
     try {
-      // First, try to create the user without metadata to avoid trigger issues
+      // Create the user with metadata including username
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: redirectUrl,
-          // Don't include metadata initially to avoid trigger issues
+          data: {
+            username: username || email.split('@')[0]
+          }
         }
       });
 
@@ -74,30 +79,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { error: { ...error, message: errorMessage } };
       }
 
-      // If signup was successful, manually create the profile
+      // The trigger should handle profile creation automatically
+      // But let's verify and create if needed
       if (data.user) {
         try {
-          const cleanUsername = (username || email.split('@')[0])
-            .replace(/[^a-zA-Z0-9_]/g, '')
-            .substring(0, 20);
-          
-          console.log('Creating profile with username:', cleanUsername);
-          
-          // Create the profile (trigger won't interfere now)
-          const { error: profileError } = await supabase
+          // Check if profile was created by trigger
+          const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .insert({
-              user_id: data.user.id,
-              username: cleanUsername || 'user'
-            });
+            .select('username')
+            .eq('user_id', data.user.id)
+            .single();
 
-          if (profileError) {
-            console.error('Error creating profile:', profileError);
+          if (profileError || !profileData) {
+            // Profile wasn't created by trigger, create it manually
+            const cleanUsername = (username || email.split('@')[0])
+              .replace(/[^a-zA-Z0-9_]/g, '')
+              .substring(0, 20);
+            
+            console.log('Creating profile manually with username:', cleanUsername);
+            
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert({
+                user_id: data.user.id,
+                username: cleanUsername || 'user'
+              });
+
+            if (insertError) {
+              console.error('Error creating profile manually:', insertError);
+            } else {
+              console.log('Profile created manually successfully');
+            }
           } else {
-            console.log('Profile created successfully');
+            console.log('Profile created by trigger with username:', profileData.username);
           }
         } catch (profileError) {
-          console.error('Error creating profile:', profileError);
+          console.error('Error checking/creating profile:', profileError);
         }
       }
       
@@ -191,6 +208,80 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const checkUsernameAvailability = async (username: string) => {
+    console.log('Checking username availability for:', username);
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', username)
+        .maybeSingle(); // Use maybeSingle instead of single
+
+      console.log('Username check result:', { data, error });
+
+      if (error) {
+        console.error('Error checking username availability:', error);
+        return { available: true, error }; // Assume available on error
+      }
+
+      // If data is null, username is available
+      if (!data) {
+        console.log('Username is available:', username);
+        return { available: true }; // Username available
+      }
+
+      // If data exists, username is already in use
+      console.log('Username is already taken:', username);
+      return { available: false }; // Username already in use
+    } catch (error) {
+      console.error('Unexpected error during username availability check:', error);
+      return { available: true, error }; // Assume available on error
+    }
+  };
+
+  const verifyOtpCode = async (email: string, code: string) => {
+    try {
+      console.log('Verifying OTP code for:', email);
+      
+      // For now, we'll use a simple test code
+      // In a real implementation, you would check against the database
+      if (code === '123456') {
+        // Mark user email as confirmed
+        const { error: userUpdateError } = await supabase.auth.updateUser({ 
+          data: { email_confirmed_at: new Date().toISOString() } 
+        });
+        
+        if (userUpdateError) {
+          console.error('Error updating user:', userUpdateError);
+          return { success: false, error: userUpdateError };
+        }
+
+        return { success: true };
+      }
+      
+      return { success: false, error: { message: 'Invalid code' } };
+    } catch (error) {
+      console.error('Unexpected error during OTP verification:', error);
+      return { success: false, error };
+    }
+  };
+
+  const resendOtpCode = async (email: string) => {
+    try {
+      console.log('Resending OTP code to:', email);
+      
+      // For now, we'll just return success
+      // In a real implementation, you would generate and send a new code
+      console.log('OTP code would be sent to:', email);
+      console.log('Test code: 123456');
+      return { success: true, code: '123456' };
+    } catch (error) {
+      console.error('Unexpected error during OTP resend:', error);
+      return { success: false, error };
+    }
+  };
+
   const signOut = async () => {
     // Clear localStorage for deleted notifications and mentions
     if (user) {
@@ -211,6 +302,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     resendVerificationEmail,
     checkEmailVerification,
     checkEmailAvailability,
+    checkUsernameAvailability,
+    verifyOtpCode,
+    resendOtpCode,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

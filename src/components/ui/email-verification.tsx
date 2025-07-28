@@ -20,7 +20,10 @@ export function EmailVerification({ email, onVerificationComplete }: EmailVerifi
   const checkVerification = async () => {
     setIsChecking(true);
     try {
+      console.log('Checking email verification for:', email);
       const { error, user } = await checkEmailVerification();
+      
+      console.log('Verification check result:', { error, user: user?.id, emailConfirmedAt: user?.email_confirmed_at });
       
       if (error) {
         console.error('Error checking verification:', error);
@@ -31,6 +34,7 @@ export function EmailVerification({ email, onVerificationComplete }: EmailVerifi
           variant: "destructive",
         });
       } else if (user?.email_confirmed_at) {
+        console.log('Email verified successfully!');
         setVerificationStatus('verified');
         toast({
           title: "Email verified successfully!",
@@ -40,6 +44,7 @@ export function EmailVerification({ email, onVerificationComplete }: EmailVerifi
           onVerificationComplete();
         }, 2000);
       } else {
+        console.log('Email not yet verified');
         setVerificationStatus('pending');
         toast({
           title: "Email not yet verified",
@@ -62,21 +67,25 @@ export function EmailVerification({ email, onVerificationComplete }: EmailVerifi
   const handleResendEmail = async () => {
     setIsResending(true);
     try {
+      console.log('Resending verification email to:', email);
       const { error } = await resendVerificationEmail(email);
       
       if (error) {
+        console.error('Failed to resend verification email:', error);
         toast({
           title: "Failed to resend verification email",
           description: error.message,
           variant: "destructive",
         });
       } else {
+        console.log('Verification email sent successfully');
         toast({
           title: "Verification email sent",
           description: "Please check your inbox and spam folder.",
         });
       }
     } catch (error) {
+      console.error('Unexpected error during resend:', error);
       toast({
         title: "Unexpected error",
         description: "Please try again in a few moments.",
@@ -88,9 +97,10 @@ export function EmailVerification({ email, onVerificationComplete }: EmailVerifi
   };
 
   useEffect(() => {
+    console.log('EmailVerification component mounted for email:', email);
     // Check verification status immediately when component mounts
     checkVerification();
-  }, []);
+  }, [email]);
 
   return (
     <Card className="w-full max-w-md bg-card/95 backdrop-blur-sm border-turf-purple/20">

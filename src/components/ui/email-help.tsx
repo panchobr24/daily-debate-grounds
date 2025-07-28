@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, Info, Clock, Mail } from 'lucide-react';
+import { AlertCircle, Info, Clock, Mail, RefreshCw, Database } from 'lucide-react';
 
 interface EmailHelpProps {
   onClose: () => void;
@@ -9,6 +9,7 @@ interface EmailHelpProps {
 
 export function EmailHelp({ onClose }: EmailHelpProps) {
   const [showDetails, setShowDetails] = useState(false);
+  const [showTechnicalSolution, setShowTechnicalSolution] = useState(false);
 
   return (
     <Card className="w-full max-w-md bg-card/95 backdrop-blur-sm border-turf-purple/20">
@@ -33,6 +34,7 @@ export function EmailHelp({ onClose }: EmailHelpProps) {
                 <li>• Você já tem uma conta com este email</li>
                 <li>• Alguém já registrou este email</li>
                 <li>• Você deletou uma conta anteriormente</li>
+                <li>• Dados órfãos no banco de dados</li>
               </ul>
             </div>
           </div>
@@ -55,6 +57,7 @@ export function EmailHelp({ onClose }: EmailHelpProps) {
                 <li>• Use um email diferente</li>
                 <li>• Aguarde alguns minutos e tente novamente</li>
                 <li>• Faça login se você já tem uma conta</li>
+                <li>• Contate o suporte se o problema persistir</li>
               </ul>
             </div>
           </div>
@@ -80,9 +83,44 @@ export function EmailHelp({ onClose }: EmailHelpProps) {
                 <li>• Reutilização imediata por terceiros</li>
                 <li>• Problemas de segurança</li>
                 <li>• Conflitos de dados</li>
+                <li>• Dados órfãos no banco</li>
               </ul>
               <p className="mt-2">
                 O tempo de liberação varia, mas geralmente é de 5-15 minutos.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Button 
+            onClick={() => setShowTechnicalSolution(!showTechnicalSolution)}
+            variant="outline"
+            className="w-full"
+          >
+            {showTechnicalSolution ? "Ocultar solução técnica" : "Solução técnica (Admin)"}
+          </Button>
+          
+          {showTechnicalSolution && (
+            <div className="text-xs text-muted-foreground p-3 bg-muted rounded-md">
+              <div className="flex items-start gap-2 mb-3">
+                <Database className="h-4 w-4 text-blue-500 mt-0.5" />
+                <div>
+                  <p className="font-medium mb-1">Para administradores:</p>
+                  <p className="mb-2">
+                    Execute este comando no SQL Editor do Supabase:
+                  </p>
+                </div>
+              </div>
+              
+              <div className="bg-background p-2 rounded border text-xs font-mono overflow-x-auto">
+                <code>
+                  SELECT public.force_cleanup_deleted_users();
+                </code>
+              </div>
+              
+              <p className="mt-2 text-xs">
+                Isso limpará todos os dados órfãos e permitirá a reutilização de emails.
               </p>
             </div>
           )}
@@ -94,12 +132,16 @@ export function EmailHelp({ onClose }: EmailHelpProps) {
             variant="outline"
             className="flex-1"
           >
-            Entendi
+            Fechar
           </Button>
           <Button 
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              // Try to refresh the page to see if the issue is resolved
+              window.location.reload();
+            }}
             className="flex-1"
           >
+            <RefreshCw className="h-4 w-4 mr-2" />
             Tentar Novamente
           </Button>
         </div>
