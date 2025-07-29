@@ -21,38 +21,17 @@ export default function Auth() {
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   
-  // SIMPLE OTP STATES
-  const [showOtpScreen, setShowOtpScreen] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
-  const [forceOtpDisplay, setForceOtpDisplay] = useState(false);
-  
   const { signUp, signIn, signInWithGoogle, user, checkUsernameAvailability } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // SIMPLE REDIRECT LOGIC
+  // SIMPLE REDIRECT - ONLY IF USER EXISTS
   useEffect(() => {
-    console.log('=== REDIRECT CHECK ===');
-    console.log('user:', user);
-    console.log('showOtpScreen:', showOtpScreen);
-    console.log('forceOtpDisplay:', forceOtpDisplay);
-    console.log('user?.email_confirmed_at:', user?.email_confirmed_at);
-    
-    // NEVER redirect if we're showing OTP screen or forcing display
-    if (showOtpScreen || forceOtpDisplay) {
-      console.log('Showing OTP screen or forcing display, NOT redirecting');
-      return;
-    }
-    
-    // Only redirect if user is confirmed and we're not showing OTP
-    if (user && user.email_confirmed_at) {
-      console.log('User confirmed and not showing OTP, redirecting to home');
+    if (user) {
+      console.log('User detected, redirecting to home');
       navigate('/');
-    } else {
-      console.log('Staying on current page');
     }
-  }, [user, showOtpScreen, forceOtpDisplay, navigate]);
+  }, [user, navigate]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -99,10 +78,9 @@ export default function Auth() {
     }
   };
 
-  // SIMPLE SIGNUP FUNCTION
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('=== SIMPLE SIGNUP START ===');
+    console.log('=== SIGNUP START ===');
     
     if (!email || !password) {
       toast({
@@ -150,26 +128,16 @@ export default function Auth() {
           variant: "destructive",
         });
       } else {
-        console.log('=== SIGNUP SUCCESS - SHOWING OTP ===');
-        
-        // SHOW OTP SCREEN IMMEDIATELY AND FORCE DISPLAY
-        setShowOtpScreen(true);
-        setForceOtpDisplay(true);
-        setOtpCode('');
+        console.log('=== SIGNUP SUCCESS ===');
         
         toast({
           title: "Account created!",
-          description: "Please verify your email with the code below.",
+          description: "Welcome to Turf!",
         });
         
-        console.log('OTP screen should now be visible and forced to stay');
-        
-        // Force a delay to ensure OTP screen appears before any redirect
-        setTimeout(() => {
-          console.log('=== DELAY COMPLETE - OTP SHOULD BE VISIBLE ===');
-          console.log('showOtpScreen should be true:', true);
-          console.log('forceOtpDisplay should be true:', true);
-        }, 500);
+        // FORCE REDIRECT IMMEDIATELY
+        console.log('FORCING REDIRECT NOW');
+        window.location.href = '/';
       }
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -238,128 +206,6 @@ export default function Auth() {
       setLoading(false);
     }
   };
-
-  // SIMPLE OTP VERIFICATION
-  const handleVerifyOtp = async () => {
-    if (otpCode.length !== 6) {
-      toast({
-        title: "Invalid code",
-        description: "Please enter a 6-digit code.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsVerifyingOtp(true);
-    console.log('Verifying OTP code:', otpCode);
-
-    try {
-      // SIMPLE VERIFICATION - just check if it's 123456
-      if (otpCode === '123456') {
-        console.log('OTP verified successfully!');
-        
-        // Update user email_confirmed_at
-        const { error } = await supabase.auth.updateUser({
-          data: { email_confirmed_at: new Date().toISOString() }
-        });
-
-        if (error) {
-          console.error('Error updating user:', error);
-        }
-
-        toast({
-          title: "Email verified!",
-          description: "Your account has been verified successfully.",
-        });
-
-        // Reset states and redirect
-        setShowOtpScreen(false);
-        setForceOtpDisplay(false);
-        setOtpCode('');
-        navigate('/');
-      } else {
-        toast({
-          title: "Invalid code",
-          description: "The verification code is incorrect. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('OTP verification error:', error);
-      toast({
-        title: "Error",
-        description: "An error occurred during verification.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsVerifyingOtp(false);
-    }
-  };
-
-  // RENDER OTP SCREEN
-  if (showOtpScreen || forceOtpDisplay) {
-    console.log('=== RENDERING OTP SCREEN ===');
-    console.log('showOtpScreen:', showOtpScreen);
-    console.log('forceOtpDisplay:', forceOtpDisplay);
-    return (
-      <div style={{ 
-        position: 'fixed', 
-        top: 0, 
-        left: 0, 
-        right: 0, 
-        bottom: 0, 
-        backgroundColor: 'rgba(0,0,0,0.8)', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        zIndex: 9999
-      }}>
-        <Card className="w-full max-w-md" style={{ backgroundColor: 'white', color: 'black' }}>
-          <CardHeader className="text-center">
-            <CardTitle className="text-xl font-bold text-blue-600">
-              🔐 Verify Your Email
-            </CardTitle>
-            <CardDescription>
-              Enter the 6-digit code sent to: <strong>{email}</strong>
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="otp-code">Verification Code</Label>
-              <Input
-                id="otp-code"
-                type="text"
-                value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="000000"
-                maxLength={6}
-                className="text-center text-lg font-mono tracking-widest"
-                disabled={isVerifyingOtp}
-              />
-              <div className="text-xs text-red-500 text-center font-bold">
-                🧪 TEST CODE: 123456
-              </div>
-            </div>
-            
-            <Button 
-              onClick={handleVerifyOtp}
-              disabled={isVerifyingOtp || otpCode.length !== 6}
-              className="w-full"
-              style={{ backgroundColor: '#3b82f6', color: 'white' }}
-            >
-              {isVerifyingOtp ? 'Verifying...' : 'Verify Code'}
-            </Button>
-            
-            <div className="text-xs text-gray-500 text-center">
-              <p>• Check your spam/junk folder if you don't see the email</p>
-              <p>• Use the test code above for now</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   // RENDER MAIN FORM
   console.log('=== RENDERING MAIN FORM ===');
